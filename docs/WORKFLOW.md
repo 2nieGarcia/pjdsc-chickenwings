@@ -26,6 +26,8 @@ gh issue comment 12 --body "Taking this."
 
 Manual: open the issue, click **assign yourself**, leave a short comment.
 
+Read the issue's **Depends on** section before claiming. It says what you can start with today, what has to land before you can close, and who's waiting on you. Issues marked **Critical path** (#1 → #5 → #7 → #8 → #18) set the demo date. If you take one, keep it moving or hand it back early.
+
 No daily status reports. Your branch and your PR show where you are.
 
 **Stuck on someone else?** Add the `blocked` label, say what you need and @ the person who has it.
