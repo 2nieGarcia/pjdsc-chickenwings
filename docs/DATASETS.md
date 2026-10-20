@@ -1,0 +1,55 @@
+# Datasets
+
+## What we build on
+
+| Use | Source | Level | Period | Licence |
+|---|---|---|---|---|
+| Training labels | CCHAIN `disease_pidsr_totals`, all 12 cities | City, weekly (Mon) | 2008-01-07 to 2022-12-26 | CC BY 4.0 |
+| Training rain | CCHAIN climate tables | Barangay, daily | 2003-2022 | CC BY 4.0 |
+| Replay rain | CHIRPS v2 daily (Earth Engine) | 0.05° | 1981 to ~1.5 months ago | Public domain |
+| Static barangay layers | CCHAIN `project_noah_hazards`, `brgy_geography`, isochrones, wealth, OSM POIs | Barangay (14, pre-2018) | Static / to 2022 | CC BY 4.0, ODbL for OSM-derived |
+| Population | PSA 2024 POPCEN | Barangay (18) | 1 Jul 2024 | Public |
+| Codes | PSA PSGC 3Q-2026 datafile | Barangay | 30 Sep 2026 | Public |
+| Polygons | HDX COD-AB Philippines | adm4 | Nov 2023 | CC BY-IGO |
+| Flood + gate log | DROMIC, MMDA, news (hand-built) | Barangay, per event | 2024 first, back to 2015 later | Public documents, cite each row |
+
+## Why this set
+
+- Everything is open and downloadable in a day. Nothing on the Sprint 1 path waits on a request letter.
+- CCHAIN is already keyed by PSGC and Monday weeks, so joins are cheap.
+- The flood and gate log is the part other teams won't have, and it's what makes the 2024 replay credible: the Tanza/Tangos gate was down from June 2024, so Carina flooding there was tide-driven as much as rain-driven.
+
+## What the labels can and can't do
+
+Navotas PIDSR, 2008-2022: 471 cases, 780 weeks, 74.6% zero weeks. 76 weeks with ≥ 2 cases, 40 with ≥ 3, 16 with ≥ 5. About 80% of cases fall July-October. City level only, nothing after 2022.
+
+Consequences:
+
+- **Target** is P(cases ≥ 3) per week. ≥ 2 is the sensitivity run. Counts are secondary.
+- **Pool** the 12 CCHAIN cities. Navotas alone has ~40 positive weeks.
+- **Baselines**: B0 all-zero, B1 5-year same-week median, B2 seasonal NB GLM. On the 2021-22 holdout B0 scores MAE 0.490 and B1 0.481; a same-week *mean* does worse (0.519). Anything we claim has to beat these on the metrics that matter for action.
+- **Primary metrics**: Brier, AUC, episode recall, median lead time. MAE secondary, on all weeks and non-zero weeks.
+- **Barangay validation** can't use CCHAIN PIDSR (city code only). Until CESU data arrives, the index is checked against flood-event frequency from our log, and presented as a planning aid.
+- **2020-2021** are COVID years with under-reporting (2020: 10 cases). Flag them.
+
+## Known traps
+
+- **14 vs 18 barangays.** CCHAIN has the 14 pre-2018 units. Tangos, Tanza and NBBS were split in Jan 2018 into Tangos North/South, Tanza 1/2 and NBBS Dagat-dagatan/Kaunlaran/Proper. We key everything on 10-digit PSGC and split parent values by POPCEN share. Shortcut: switch to building-footprint shares (Open Buildings) if the split visibly distorts the ranking.
+- **Never sum PIDSR and FHSIS.** PIDSR is already inside FHSIS annual totals.
+- **CHIRPS vs CCHAIN rain.** We train on one and replay on the other. Check the distributions match over 2015-2022 before trusting the replay.
+- **Reporting delay.** DOH totals for the same period get revised upward for weeks. Recent case counts are never a forecast feature without a delay offset.
+- **Licences.** LiPAD: internal only, no redistribution. Global Flood Database: CC BY-NC. OSM-derived layers: ODbL share-alike.
+
+## Not used in Sprint 1
+
+Matsushita San Lazaro series (2001-2012), UHSLC/IOC tide, GSMaP/IMERG, ECMWF forecast rain, PAGASA station data, WorldPop/HRSL age layers, Open Buildings, MUCEP OD data, PFDA port volumes. Most come in Sprint 2 if they earn their place on the demo path.
+
+## Requests out (send day 1)
+
+| To | Ask for | Why |
+|---|---|---|
+| DOH-MMCHD RESU | Weekly lepto cases by NCR city, 2008-2026; city epidemic thresholds | CAMANAVA pooling, a real 2023-26 test |
+| Navotas CESU/CHO | Barangay-by-week PIDSR counts 2015-2026; 2018 outbreak barangay names; doxycycline inventory | Barangay validation, real stock baseline |
+| DOH FOI portal | Two existing requests on NCR weekly lepto data, check attachments | Possible free 2021-25 labels |
+
+Turnaround is 15-20 working days. Build as if none of it arrives.
