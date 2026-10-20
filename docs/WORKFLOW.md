@@ -2,26 +2,16 @@
 
 Everything for Sprint 1 is an issue in the **Sprint 1 PoC** milestone. If it isn't an issue, it isn't in the sprint.
 
+Nobody hands out tasks. You pick what you want, work at your own pace, and own it until it's merged. The lead reviews every PR. That's the main checkpoint.
+
 ## Ground rules
 
-These exist so the demo doesn't depend on luck.
-
-1. **One issue in progress per person.** Claim a second one only after the first has an open PR.
-2. **P0 before P1.** While any `P0-demo-blocker` is unclaimed, nobody starts a P1. End of day 1, the lead assigns any P0 still unclaimed.
-3. **Claims expire.** No commit, push or comment for 24 hours and the issue is fair game. Ask in the issue, wait 2 hours, then the lead reassigns.
-4. **Lanes have owners.** Anyone can take any issue, but each lane has one person who makes sure its P0s land. The lane owner isn't the only one working there.
-
-   | Lane | Covers | Owner |
-   |---|---|---|
-   | A | data ingest, panel, flood log | |
-   | B | baselines, event model, replay | |
-   | C | crosswalk, index, exposure, planner | |
-   | D | dashboard | |
-   | E | demo script, requests, deck | |
-
-5. **Build against contracts and fixtures, not each other.** `python -m f2f.fixtures` gives you a full fake artifact folder. Nobody waits on another branch to start.
-6. **Contract changes are announced.** Changing a column means editing `contracts.py`, `docs/CONTRACTS.md` and `fixtures.py` in the same PR, plus a comment on every open issue that reads that artifact.
-7. **Freeze on day 6 at noon.** After that, only fixes for things that break the demo get merged.
+1. **Pick it, own it.** Once you claim an issue it's yours through review and merge, including the fixes reviewers ask for.
+2. **P0s first.** While any `P0-demo-blocker` is still open and unclaimed, grab one of those before a P1. Nobody checks this. It's how the demo gets built.
+3. **One at a time.** Finish or open a PR before claiming the next issue, so there's always something left for others.
+4. **Build against contracts and fixtures, not each other.** `python -m f2f.fixtures` gives you a full fake artifact folder. You never have to wait on someone else's branch to start.
+5. **Announce contract changes.** Changing a column means editing `contracts.py`, `docs/CONTRACTS.md` and `fixtures.py` in the same PR, plus a comment on every open issue that reads that artifact.
+6. **Freeze on day 6 at noon.** After that, only fixes for things that break the demo get merged.
 
 ## Picking up an issue
 
@@ -31,22 +21,16 @@ gh issue list --milestone "Sprint 1 PoC" --label P0-demo-blocker --search "no:as
 
 # claim it
 gh issue edit 12 --add-assignee @me
-gh issue comment 12 --body "Taking this. Expect a PR by Thursday."
+gh issue comment 12 --body "Taking this."
 ```
 
-Manual: open the issue, click **assign yourself**, leave a one-line comment with when you expect a PR.
+Manual: open the issue, click **assign yourself**, leave a short comment.
 
-**Daily update**, one comment on your issue before standup:
+No daily status reports. Your branch and your PR show where you are.
 
-```
-done: CHIRPS pull works for 2015-2020
-next: 2021-2024, then the overlap plot
-blocked: no
-```
+**Stuck on someone else?** Add the `blocked` label, say what you need and @ the person who has it.
 
-**Stuck?** Add the `blocked` label, say what you need and @ the person who has it. Don't sit on it for half a day.
-
-**Dropping it?** Push your branch, comment where you left off, unassign yourself. That's fine. Ghosting an issue isn't.
+**Dropping it?** Push your branch, comment where you left off, and unassign yourself. That's fine, but say so, because an issue that looks claimed won't get picked up by anyone else.
 
 ## Branches
 
@@ -54,7 +38,7 @@ blocked: no
 feat/<issue>-<short-name>     new behaviour          feat/14-tier-map
 fix/<issue>-<short-name>      bug                    fix/31-rain-lag-leak
 data/<issue>-<short-name>     data files, ingest     data/4-carina-flood-log
-docs/<issue>-<short-name>     docs only              docs/19-demo-script
+docs/<issue>-<short-name>     docs only              docs/18-demo-script
 ```
 
 Branch off the latest `main`. Rebase, don't merge `main` into your branch.
@@ -64,7 +48,7 @@ Branch off the latest `main`. Rebase, don't merge `main` into your branch.
 - Title follows the commit style in [CONTRIBUTING.md](../CONTRIBUTING.md). The body starts with `Closes #<issue>`.
 - Keep it small. Over ~400 changed lines (excluding lockfiles and fixtures) usually means two PRs.
 - UI changes need a screenshot. Model changes need the metrics table before and after.
-- One approval, from anyone. Reviewers respond within about 4 hours during the sprint.
+- The lead reviews and approves. Teammates are welcome to review too.
 - The author squash-merges after approval and deletes the branch.
 - Nothing merges to `main` in the 2 hours before a dry run without the lead's OK.
 
@@ -81,6 +65,8 @@ Check all of these before opening the PR:
 - [ ] Anything synthetic says so on screen.
 - [ ] Rebased on `main`.
 
-## Standup
+## Communication
 
-15 minutes, same time every day. Each person gives their issue number, what's done, what's next and whether they're blocked. The lead closes with the count of P0s open, claimed and merged. If that count isn't moving by day 3, we cut scope (see the cut list in [SPRINTS.md](SPRINTS.md)) instead of working later.
+The lead posts heads-ups in the group chat: scope changes, contract changes, dry-run times. Questions about an issue go in the issue, so the answer stays with the work.
+
+If P0s aren't landing by day 3, the lead cuts scope using the cut list in [SPRINTS.md](SPRINTS.md) instead of anyone working later.
