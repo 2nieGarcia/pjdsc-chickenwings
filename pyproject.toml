@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flood-to-fever"
+version = "0.1.0"
+description = "Leptospirosis early warning and decision support for Navotas City"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.1",
+    "pyarrow>=14",
+    "numpy>=1.26",
+    "statsmodels>=0.14",
+    "scikit-learn>=1.4",
+    "streamlit>=1.32",
+    "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+geo = ["geopandas>=0.14"]
+ee = ["earthengine-api>=0.1.390"]
+ml = ["lightgbm>=4.3"]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

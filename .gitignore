@@ -1,0 +1,26 @@
+# never commit
+CONFIDENTIAL/
+.env
+.vscode/
+
+# data lives outside git, see data/README.md
+data/*
+!data/README.md
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+build/
+dist/
+
+# notebooks
+.ipynb_checkpoints/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.idea/

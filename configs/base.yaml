@@ -1,0 +1,48 @@
+paths:
+  raw: data/raw
+  interim: data/interim
+  artifacts: data/artifacts
+
+city:
+  psgc10: "1380900000"          # PSA PSGC, Navotas
+  cchain_adm3: PH137503000      # CCHAIN's code for the same city
+  pop_2024: 252878              # POPCEN 2024, 18 barangays
+
+target:
+  elevated_min_cases: 3         # 40 positive weeks in 2008-2022
+  sensitivity_min_cases: 2      # 76 positive weeks
+
+horizons: [1, 2, 3]
+
+split:
+  train_end: 2018-12-31
+  tune: [2019-01-01, 2020-12-31]
+  test: [2021-01-01, 2022-12-31]
+
+alerts:
+  heavy_day_mm: 50
+  watch_rain_lag2_mm: 160       # Matsushita 2018, "heavy" weekly category
+  warning_rain_lag2_mm: 320
+  p_cutoff: null                # tuned on 2019-20 for F2, then frozen here
+
+index:
+  scale: [1, 10]                # never 0, geometric mean needs > 0
+  winsor: [0.05, 0.95]
+  mc_draws: 10000
+  weight_jitter: 0.20
+  act_now_top: 5
+  prepare_next: 6
+
+exposure:
+  daytime_factor: 0.93          # MUCEP day/night, 194.4k / 209.4k
+  nfpc_inflow: [30000, 40000, 50000]
+  nfpc_barangays: [NBBS Dagat-dagatan, NBBS Kaunlaran, NBBS Proper]
+
+planner:
+  caps_per_person:              # 100 mg capsules, PSMID CPG 2010 s4.2
+    act_now: 4                  # 200 mg weekly, 2 exposure-weeks
+    prepare: 6                  # 200 mg daily x 3 days
+    monitor: 2                  # 200 mg once
+  uptake: 0.5
+  uptake_scenarios: [0.3, 0.5, 0.7]
+  buffer: 0.15
