@@ -26,13 +26,14 @@ def build_city_week(pidsr: pd.DataFrame, rain: pd.DataFrame, pop: pd.DataFrame, 
 
     r = rain.assign(week_start=rain["date"] - pd.to_timedelta(rain["date"].dt.dayofweek, unit="D"),
                     heavy=rain["rain_mm"] >= cfg["alerts"]["heavy_day_mm"])
-    wk = r.groupby(["city_psgc", "week_start"]).agg(rain_wk_mm=("rain_mm", lambda s: s.sum() if len(s) == 7 else float("nan")),
-                                                    heavy_days=("heavy", "sum"), n=("rain_mm", "size"))
-    wk.loc[wk["n"] < 7, "heavy_days"] = pd.NA
+    wk = r.groupby(["city_psgc", "week_start"]).agg(rain_wk_mm=("rain_mm", "sum"), heavy_days=("heavy", "sum"),
+                                                    n=("rain_mm", "size"))
+    wk[["rain_wk_mm", "heavy_days"]] = wk[["rain_wk_mm", "heavy_days"]].astype(float).where(wk["n"] == 7)
     wk = wk.drop(columns="n").reset_index()
-    # lags need the weeks before the panel starts, so shift on the rain table's own (gap-free) weekly grid first
+    # lags need weeks before the panel starts and after the rain stops (the weeks a forecast targets),
+    # so shift on a gap-free weekly grid that covers both
     rain_grid = pd.MultiIndex.from_product([sorted(wk["city_psgc"].unique()),
-                                            pd.date_range(wk["week_start"].min(), wk["week_start"].max(), freq="W-MON")],
+                                            pd.date_range(wk["week_start"].min(), max(wk["week_start"].max(), end), freq="W-MON")],
                                            names=["city_psgc", "week_start"])
     wk = wk.set_index(["city_psgc", "week_start"]).reindex(rain_grid)
     for k in RAIN_LAGS:
