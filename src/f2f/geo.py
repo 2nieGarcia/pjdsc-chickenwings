@@ -31,8 +31,3 @@ def area_centroid(geometry: dict) -> tuple[float, float, float]:
             sum(a * x for a, x, _ in parts) / total,
             sum(a * y for a, _, y in parts) / total)
 
-
-def haversine_km(lon1, lat1, lon2, lat2) -> float:
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2
-    return 2 * R_KM * math.asin(math.sqrt(h))

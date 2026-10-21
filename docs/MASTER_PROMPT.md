@@ -96,11 +96,11 @@ src/f2f/fixtures.py       fake artifacts that pass contracts [done]
 src/f2f/barangays.py      load() 18-barangay crosswalk + pop; to_children() 14 -> 18 [done]
 src/f2f/ref/              navotas_barangays.csv (the only data file in git)
 src/f2f/exposure.py       present_population: resident x 0.93 + fish port inflow  [done]
-src/f2f/geo.py            polygon area/centroid, haversine (no geopandas)        [done]
-src/f2f/ingest/           static.py (fetch barangay layers) [done]; cchain.py, rain.py [stubs]; events.py load_flood_log [done]
+src/f2f/geo.py            polygon area/centroid (no geopandas)                   [done]
+src/f2f/ingest/           fetch.py (all raw downloads, CCHAIN from HDX) [done]; cchain.py, rain.py [stubs]; events.py load_flood_log [done]
 src/f2f/features.py       build_city_week                    [stub]
 src/f2f/forecast/         baselines.py, event_model.py       [stubs]
-src/f2f/index.py          load_layers + build_index on real CCHAIN/OSM layers [done]
+src/f2f/index.py          load_layers + build_index on real CCHAIN layers (NOAH, Open Buildings, Mapbox isochrones, DOH geoportal) [done]
 src/f2f/replay.py         issue_dates                        [done]
 src/f2f/run.py            pipeline entry point
 tests/                    pytest

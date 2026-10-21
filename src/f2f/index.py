@@ -10,8 +10,9 @@ Indicators, all "higher = worse":
   vulnerability  small_bldg_share  share of buildings under 100 m2, informal-housing proxy (Open Buildings 2023, parent level)
                  built_up_pct      % of area built up (Open Buildings 2023, parent level)
                  pop_density       residents per km2 (POPCEN 2024 / polygon area)
-  coping_gap     km_to_care        straight-line km from the barangay centroid to the nearest
-                                   hospital/clinic/health post in OSM, any city
+  coping_gap     no_hc_15min       % of residents not within 15 min of a barangay health centre (Mapbox isochrones 2022, parent level)
+                 no_hosp_15min     % of residents not within 15 min of a hospital (Mapbox isochrones 2022, parent level)
+                 m_to_primary      metres to the nearest DOH barangay health station or RHU (DOH geoportal 2013, parent level)
 
 Each indicator: log1p where skewed, winsorised, min-max to [1, 10]. A constant indicator carries no
 information and is dropped. Dimensions are the mean of their indicators; score is the geometric
@@ -19,7 +20,6 @@ mean of hazard, exposure (by mode), vulnerability and coping_gap, so a barangay 
 can't rank high on crowding alone. Rank bands (#11) are left equal to the rank for now.
 """
 import json
-import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -32,19 +32,20 @@ DIMENSIONS = {
     "exposure_res": ["pop_resident"],
     "exposure_day": ["pop_daytime"],
     "vulnerability": ["small_bldg_share", "built_up_pct", "pop_density"],
-    "coping_gap": ["km_to_care"],
+    "coping_gap": ["no_hc_15min", "no_hosp_15min", "m_to_primary"],
 }
-LOG = {"pop_resident", "pop_daytime", "pop_density", "km_to_care"}
-CARE_AMENITY = {"hospital", "clinic", "doctors", "health_post"}
-CARE_HEALTHCARE = {"hospital", "clinic", "centre", "community_health_worker", "doctor"}
+LOG = {"pop_resident", "pop_daytime", "pop_density", "m_to_primary"}
+PARENT = ["flood25_any", "flood100_medhigh", "small_bldg_share", "built_up_pct", "no_hc_15min", "no_hosp_15min", "m_to_primary"]
 
 
 def load_layers(raw: Path, cfg: dict) -> pd.DataFrame:
-    """One row per barangay with every raw indicator. Needs `python -m f2f.ingest.static` first."""
+    """One row per barangay with every raw indicator. Needs `python -m f2f.ingest.fetch` first."""
     raw = Path(raw)
     cc = raw / "cchain"
     noah = pd.read_csv(cc / "project_noah_hazards.csv")
     bldg = pd.read_csv(cc / "google_open_buildings.csv")
+    iso = pd.read_csv(cc / "mapbox_health_facility_brgy_isochrones.csv")
+    doh = pd.read_csv(cc / "geoportal_doh_poi_health.csv")
     parent = noah.assign(
         flood25_any=noah.filter(regex=r"flood_hazard_25yr_").sum(axis=1),
         flood100_medhigh=noah["pct_area_flood_hazard_100yr_med"] + noah["pct_area_flood_hazard_100yr_high"],
@@ -52,8 +53,15 @@ def load_layers(raw: Path, cfg: dict) -> pd.DataFrame:
         bldg.assign(small_bldg_share=bldg["google_bldgs_count_lt100_sqm"] / bldg["google_bldgs_count"],
                     built_up_pct=bldg["google_bldgs_pct_built_up_area"])
         [["adm4_pcode", "small_bldg_share", "built_up_pct"]], on="adm4_pcode",
+    ).merge(
+        iso.assign(no_hc_15min=100 - iso["brgy_healthcenter_pop_reached_pct_15min"],
+                   no_hosp_15min=100 - iso["hospital_pop_reached_pct_15min"])
+        [["adm4_pcode", "no_hc_15min", "no_hosp_15min"]], on="adm4_pcode",
+    ).merge(
+        doh.assign(m_to_primary=doh[["doh_brgy_health_station_nearest", "doh_rural_health_unit_nearest"]].min(axis=1))
+        [["adm4_pcode", "m_to_primary"]], on="adm4_pcode",
     ).rename(columns={"adm4_pcode": "parent_psgc_cchain"})
-    df = barangays.to_children(parent, intensive=["flood25_any", "flood100_medhigh", "small_bldg_share", "built_up_pct"])
+    df = barangays.to_children(parent, intensive=PARENT)
 
     shapes = polygons(raw)
     df = df.merge(shapes, on="psgc10", how="left")
@@ -64,9 +72,6 @@ def load_layers(raw: Path, cfg: dict) -> pd.DataFrame:
     df = df.merge(pop, on="psgc10")
     df["pop_density"] = df["pop_resident"] / df["area_km2"]
     df["gate_affected"] = df["psgc10"].isin(cfg.get("gate_impaired", {}).get("barangays", [])).astype(float)
-
-    care = care_points(raw)
-    df["km_to_care"] = [min(geo.haversine_km(x, y, cx, cy) for cx, cy in care) for x, y in zip(df["lon"], df["lat"])]
     return df
 
 
@@ -89,35 +94,6 @@ def boundaries(raw: Path) -> dict:
                              "name": names[str(f["properties"]["adm4_psgc"])]}}
              for f in fc["features"]]
     return {"type": "FeatureCollection", "features": feats}
-
-
-def care_points(raw: Path, pad: float = 0.05) -> list[tuple[float, float]]:
-    """Primary-care points from the HOT OSM export, within `pad` degrees of Navotas.
-
-    City tags in that export are unreliable (Navotas City Hospital is tagged Caloocan), so filter by
-    distance, not by city. shortcut: straight-line distance, OSM coverage of barangay health
-    centres is thin; swap in the CLUP facility list or OSRM walking time when someone has them.
-    """
-    with zipfile.ZipFile(Path(raw) / "osm" / "hotosm_phl_health_facilities.zip") as z:
-        fc = json.loads(z.read("health_facilities.geojson"))
-    pts = []
-    for f in fc["features"]:
-        p, g = f["properties"], f["geometry"]
-        if not g or not (p.get("amenity") in CARE_AMENITY or p.get("healthcare") in CARE_HEALTHCARE):
-            continue
-        if any(w in (p.get("name") or "").lower() for w in ("dental", "animal", "dialysis")):
-            continue
-        if g["type"] == "Point":
-            x, y = g["coordinates"][:2]
-        elif "Polygon" in g["type"]:
-            _, x, y = geo.area_centroid(g)
-        else:
-            continue
-        if 120.92 - pad <= x <= 120.97 + pad and 14.63 - pad <= y <= 14.70 + pad:
-            pts.append((x, y))
-    if not pts:
-        raise ValueError("no health facilities found near Navotas")
-    return pts
 
 
 def scale(s: pd.Series, winsor=(0.05, 0.95), log: bool = False, lo: float = 1, hi: float = 10) -> pd.Series:

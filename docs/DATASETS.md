@@ -8,7 +8,7 @@
 | Training rain | CCHAIN climate tables | Barangay, daily | 2003-2022 | CC BY 4.0 |
 | Replay rain | CHIRPS v2 daily (Earth Engine) | 0.05° | 1981 to ~1.5 months ago | Public domain |
 | Static barangay layers | CCHAIN `project_noah_hazards` (2015), `google_open_buildings` (2023), `location` | Barangay (14, pre-2018) | Static | CC BY 4.0 |
-| Health facilities | HOT OSM export via HDX | Point | Refreshed weekly upstream | ODbL |
+| Access to care | CCHAIN `mapbox_health_facility_brgy_isochrones` (2022), `geoportal_doh_poi_health` (2013) | Barangay (14, pre-2018) | Static | CC BY 4.0 |
 | Population | PSA 2024 POPCEN | Barangay (18) | 1 Jul 2024 | Public |
 | Codes | PSA PSGC | Barangay | 2023 codes, unchanged since | Public |
 | Polygons | faeldon/philippines-json-maps 2023 (PSA/NAMRIA boundaries) | Barangay (18) | 2023 | MIT |
@@ -39,7 +39,7 @@ Consequences:
 - **Never sum PIDSR and FHSIS.** PIDSR is already inside FHSIS annual totals.
 - **CHIRPS vs CCHAIN rain.** We train on one and replay on the other. Check the distributions match over 2015-2022 before trusting the replay.
 - **Reporting delay.** DOH totals for the same period get revised upward for weeks. Recent case counts are never a forecast feature without a delay offset.
-- **Licences.** LiPAD: internal only, no redistribution. Global Flood Database: CC BY-NC. OSM-derived layers: ODbL share-alike.
+- **Licences.** LiPAD: internal only, no redistribution. Global Flood Database: CC BY-NC. OSM-derived layers (none in use right now): ODbL share-alike.
 
 ## Barangay reference table
 
@@ -60,16 +60,20 @@ Config lists that name barangays (`gate_impaired.barangays`, `exposure.nfpc_bara
 
 ## Barangay index inputs
 
-`python -m f2f.ingest.static` downloads these into `data/raw/`. URLs are pinned to a commit where possible.
+`python -m f2f.ingest.fetch` downloads these into `data/raw/`.
 
-- **CCHAIN tables** come from a public mirror (`jairo3224/Leptospiros_Case_Estimation`) until someone pulls the official Kaggle files in #1. The tables are the same CCHAIN release; swap the URL in `ingest/static.py` when the official ones arrive.
-- **Polygons:** `faeldon/philippines-json-maps`, 2023, medium resolution, all 18 barangays with `adm4_psgc`. HDX COD-AB is the official alternative (#2).
-- **Health facilities:** HOT OSM. The city tags in this export are wrong in places (Navotas City Hospital is tagged Caloocan), so facilities are picked by distance, not by city.
+- **CCHAIN tables** come from the official release on HDX ([project-cchain](https://data.humdata.org/dataset/project-cchain), CC BY 4.0, no login). The public mirror used before this was checked byte-for-byte against HDX for the four tables both carry: identical. Rankings built on the mirror were therefore already on official data.
+- **Polygons:** `faeldon/philippines-json-maps`, 2023, medium resolution, all 18 barangays with `adm4_psgc`. HDX COD-AB would be the official alternative.
+- **Access to care** comes from CCHAIN, not OSM:
+  - Mapbox driving isochrones (2022): the share of each barangay's residents within 15 minutes of a barangay health centre and of a hospital;
+  - the DOH health facility geoportal (2013): distance to the nearest barangay health station or RHU.
+
+  OSM was dropped. It maps few Navotas health centres, and its city tags were wrong (Navotas City Hospital tagged as Caloocan).
 
 The indicators and the scaling are listed in the `src/f2f/index.py` docstring. Known weak spots:
 
-- **Split children inherit parent values.** NOAH flood shares and building stats exist only for CCHAIN's 14 units, so children of Tangos, Tanza and NBBS inherit the parent's numbers. Their population, density and distance to care are their own.
-- **Distance to care is OSM-limited.** OSM maps few barangay health centres in Navotas, so `km_to_care` under-counts real access in some barangays. The upgrade is the CLUP Table 3.7 facility list plus walking time.
+- **Split children inherit parent values.** NOAH flood shares, building stats and access to care exist only for CCHAIN's 14 units, so children of Tangos, Tanza and NBBS inherit the parent's numbers. Only their population and density are their own.
+- **Access data is dated and drive-based.** The isochrones are 2022 driving times and the DOH geoportal points are 2013. Health centres opened since are missing, e.g. Tanza 2's (2023). Walking time to the CLUP Table 3.7 facilities would be better for flood conditions.
 - **Gate flag is time-limited.** `gate_affected` only switches on when the scenario config has a `gate_impaired` list (Carina 2024 does). Without it the indicator is constant and drops out.
 - **No outcome validation yet.** Weights are equal and there are no barangay case counts to check against. Treat the ranking as a planning aid.
 
@@ -85,7 +89,7 @@ The dashboard labels every daytime number as a scenario estimate.
 
 ## Not used in Sprint 1
 
-Matsushita San Lazaro series (2001-2012), UHSLC/IOC tide, GSMaP/IMERG, ECMWF forecast rain, PAGASA station data, WorldPop/HRSL age layers, Open Buildings, MUCEP OD data, PFDA port volumes. Most come in Sprint 2 if they earn their place on the demo path.
+Matsushita San Lazaro series (2001-2012), UHSLC/IOC tide, GSMaP/IMERG, ECMWF forecast rain, PAGASA station data, WorldPop/HRSL age layers, MUCEP OD data, PFDA port volumes. Most come in Sprint 2 if they earn their place on the demo path.
 
 ## Requests out (send day 1)
 
