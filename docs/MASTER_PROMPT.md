@@ -79,13 +79,14 @@ and writes only plans/<plan_id>.json + audit.jsonl (C5) on approve/reject
   ```
   The response adds `plan_id`, `allocations [{psgc10, need_caps, alloc_caps, unmet_caps}]`, `total_need`, `total_alloc` and `status: draft`. Invariants: Σalloc ≤ stock and 0 ≤ alloc ≤ need. Bad inputs raise `ValueError`.
 - **C5 `audit.jsonl`:** `{ts, plan_id, action, actor, note}`. Transitions: created → approved | rejected, both final. `actor` is required.
+- **C6 `barangays.geojson`:** FeatureCollection of exactly 18 Polygon/MultiPolygon features in lon/lat, with properties `psgc10` and `name` only. Checked by `contracts.check_boundaries`.
 
 Changing a contract means updating `contracts.py`, `docs/CONTRACTS.md` and `fixtures.py` in the same PR.
 
 ## 5. Repo
 
 ```
-app/streamlit_app.py      dashboard (reads artifacts only)
+app/streamlit_app.py      dashboard (reads artifacts only; F2F_ARTIFACTS env var overrides the folder); tier map [done]
 configs/base.yaml         paths, target, split, alert cut-points, index, exposure, planner
 configs/carina_2024.yaml  replay window, gate window, synthetic stock
 src/f2f/config.py         load(path) = base.yaml merged with the scenario file
@@ -126,7 +127,7 @@ Critical path: **#1 → #5 → #7 → #8 → #18**.
 | 11 | Monte Carlo rank bands | P1 | #10 |
 | 12 | Daytime exposure scenario (done) | P1 | #9 |
 | 13 | End-to-end run.py + `manifest.json` | P0 | real run needs #1, #3, #4, #5, #7, #8, #10 |
-| 14 | Barangay tier map (offline, colour-blind safe) | P0 | #2, #9 for real data |
+| 14 | Barangay tier map (offline, colour-blind safe) (done) | P0 | #2, #9 for real data |
 | 15 | Replay timeline + gate banner | P0 | #8, #5 for real data |
 | 16 | Stock panel: stable plan IDs, no double approval | P1 | soft #10 |
 | 17 | Backtest metrics card | P1 | #6 |

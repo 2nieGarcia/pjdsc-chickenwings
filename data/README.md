@@ -30,6 +30,7 @@ city_week.parquet
 forecast.parquet
 barangay_index_resident.parquet
 barangay_index_daytime.parquet
+barangays.geojson         18 polygons for the map
 plans/<plan_id>.json      written by the app on approve/reject
 audit.jsonl               written by the app
 ```

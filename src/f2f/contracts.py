@@ -127,3 +127,22 @@ def _barangay_index(df):
 
 
 _INVARIANTS = {"city_week": _city_week, "forecast": _forecast, "barangay_index": _barangay_index}
+
+
+def check_boundaries(fc: dict) -> dict:
+    """barangays.geojson: FeatureCollection, 18 Polygon/MultiPolygon features, unique psgc10 + name properties."""
+    errs = []
+    feats = fc.get("features", []) if fc.get("type") == "FeatureCollection" else None
+    if feats is None:
+        errs.append("not a FeatureCollection")
+    else:
+        codes = [f.get("properties", {}).get("psgc10") for f in feats]
+        if len(feats) != 18 or len(set(codes)) != 18 or not all(isinstance(c, str) for c in codes):
+            errs.append("need 18 features with unique string psgc10")
+        if any(not f.get("properties", {}).get("name") for f in feats):
+            errs.append("every feature needs a name")
+        if any((f.get("geometry") or {}).get("type") not in ("Polygon", "MultiPolygon") for f in feats):
+            errs.append("geometries must be Polygon or MultiPolygon")
+    if errs:
+        raise ValueError("barangays.geojson contract broken:\n  " + "\n  ".join(errs))
+    return fc

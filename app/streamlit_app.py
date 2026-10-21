@@ -3,29 +3,34 @@
 Reads one artifact folder. The only things it writes are decided plans and the approval log.
 """
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
+import pydeck as pdk
 import streamlit as st
 
-from f2f import config
+from f2f import config, geo
 from f2f.planner import log_action, make_plan
+
+# Okabe-Ito, readable with the common colour-vision deficiencies; tier is also spelled out in the tooltip
+TIER_RGB = {"act_now": [213, 94, 0, 210], "prepare": [230, 159, 0, 190], "monitor": [86, 180, 233, 170]}
 
 ROOT = Path(__file__).resolve().parents[1]
 cfg = config.load(ROOT / "configs" / "carina_2024.yaml")
-art_root = ROOT / cfg["paths"]["artifacts"]
+art_root = Path(os.environ.get("F2F_ARTIFACTS", ROOT / cfg["paths"]["artifacts"]))
 
 st.set_page_config(page_title="Flood-to-Fever | Navotas", layout="wide")
 st.title("Flood-to-Fever: Navotas City")
 
-runs = sorted(p for p in art_root.glob("*") if (p / "forecast.parquet").exists()) if art_root.exists() else []
+runs = sorted(p for p in art_root.glob("*") if (p / "barangay_index_resident.parquet").exists()) if art_root.exists() else []
 if not runs:
-    st.info("No artifacts yet. Build them with `python -m f2f.run --config configs/carina_2024.yaml`.")
+    st.info("No artifacts yet. Build them with `python -m f2f.run --config configs/carina_2024.yaml`, "
+            "or `python -m f2f.fixtures` for fake ones.")
     st.stop()
 
 run = st.sidebar.selectbox("Run", runs[::-1], format_func=lambda p: p.name)
 mode = st.sidebar.radio("Exposure", ["resident", "daytime"])
-fc = pd.read_parquet(run / "forecast.parquet")
 idx = pd.read_parquet(run / f"barangay_index_{mode}.parquet")
 if mode == "daytime":
     e = cfg["exposure"]
@@ -33,18 +38,44 @@ if mode == "daytime":
                        "workers on the NBBS barangays. Not a headcount.")
 
 # forecast
-issue = st.select_slider("Issue date", sorted(fc["issue_date"].unique()),
-                         format_func=lambda d: pd.Timestamp(d).strftime("%d %b %Y"))
-now = fc[fc["issue_date"] == issue].sort_values("h")
-for col, r in zip(st.columns(len(now)), now.itertuples()):
-    col.metric(f"P(elevated), week +{r.h}", f"{r.p_elevated:.0%}", r.alert, delta_color="off")
-seen = fc[(fc["h"] == 2) & (fc["issue_date"] <= issue)]
-st.line_chart(seen.set_index("target_week")["p_elevated"])
-st.caption(f"Rain through {now['rain_through'].max():%d %b %Y}. "
-           f"Cases through {now['cases_through'].max():%d %b %Y}.")
+if (run / "forecast.parquet").exists():
+    fc = pd.read_parquet(run / "forecast.parquet")
+    issue = st.select_slider("Issue date", sorted(fc["issue_date"].unique()),
+                             format_func=lambda d: pd.Timestamp(d).strftime("%d %b %Y"))
+    now = fc[fc["issue_date"] == issue].sort_values("h")
+    for col, r in zip(st.columns(len(now)), now.itertuples()):
+        col.metric(f"P(elevated), week +{r.h}", f"{r.p_elevated:.0%}", r.alert, delta_color="off")
+    seen = fc[(fc["h"] == 2) & (fc["issue_date"] <= issue)]
+    st.line_chart(seen.set_index("target_week")["p_elevated"])
+    st.caption(f"Rain through {now['rain_through'].max():%d %b %Y}. "
+               f"Cases through {now['cases_through'].max():%d %b %Y}.")
+else:
+    issue = pd.Timestamp(cfg["replay"]["event_window"][0])
+    st.info("No forecast in this run yet. Showing the barangay index only.")
 
 # barangays
 st.subheader("Barangays")
+if (run / "barangays.geojson").exists():
+    shapes = json.loads((run / "barangays.geojson").read_text(encoding="utf-8"))
+    rows = idx.set_index("psgc10")
+    expo = "exposure_day" if mode == "daytime" else "exposure_res"
+    for f in shapes["features"]:
+        r = rows.loc[f["properties"]["psgc10"]]
+        f["properties"].update(
+            tier=r["tier"].replace("_", " "), rank=int(r["rank"]), band=f"{r['rank_p05']}-{r['rank_p95']}",
+            fill=TIER_RGB[r["tier"]], hazard=round(r["hazard"], 1), exposure=round(r[expo], 1),
+            vulnerability=round(r["vulnerability"], 1), coping_gap=round(r["coping_gap"], 1))
+    cents = [geo.area_centroid(f["geometry"])[1:] for f in shapes["features"]]
+    lons, lats = zip(*cents)
+    view = pdk.ViewState(longitude=(min(lons) + max(lons)) / 2, latitude=(min(lats) + max(lats)) / 2, zoom=11.9)
+    st.pydeck_chart(pdk.Deck(
+        layers=[pdk.Layer("GeoJsonLayer", shapes, pickable=True, stroked=True, filled=True,
+                          get_fill_color="properties.fill", get_line_color=[60, 60, 60, 255], line_width_min_pixels=1)],
+        # basemap tiles are decoration; offline they don't load and the polygons still draw
+        initial_view_state=view, map_style=None,
+        tooltip={"html": "<b>{name}</b><br/>{tier}, rank {rank} (band {band})<br/>hazard {hazard} · "
+                         "exposure {exposure}<br/>vulnerability {vulnerability} · coping gap {coping_gap}"}))
+    st.caption("Vermillion: act now · Orange: prepare · Sky blue: monitor. Hover a barangay for its components.")
 st.dataframe(idx.sort_values("rank")[["name", "tier", "score", "hazard", "exposure_res", "exposure_day",
                                       "vulnerability", "coping_gap", "rank_p05", "rank_p95"]], hide_index=True)
 

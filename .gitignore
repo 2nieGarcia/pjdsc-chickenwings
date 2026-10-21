@@ -17,6 +17,10 @@ venv/
 build/
 dist/
 
+# local-only output: browser test captures, personal reports
+.playwright-mcp/
+reports/
+
 # notebooks
 .ipynb_checkpoints/
 
