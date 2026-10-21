@@ -37,7 +37,14 @@ python -m f2f.export                                 # artifacts -> web/public/d
 cd web && npm install && npm run dev                 # the dashboard, http://127.0.0.1:5173
 ```
 
-The dashboard is a static Vite app (three.js + GSAP, fonts bundled), so it runs with Wi-Fi off once `npm install` has run. `npm run build` writes `web/dist/`. The older Streamlit app (`streamlit run app/streamlit_app.py`) still works as a fallback. The visual system is in [DESIGN.md](DESIGN.md).
+The dashboard is a static Vite app (three.js + GSAP, fonts bundled), so it runs with Wi-Fi off once `npm install` has run. For the demo, build it and serve it with the local recorder, which also writes plan decisions to the run's `audit.jsonl`:
+
+```bash
+cd web && npm run build && cd ..
+python -m f2f.serve                                  # http://127.0.0.1:8600, localhost only
+```
+
+In `npm run dev`, Vite proxies `/api` to the same server, so start `python -m f2f.serve` alongside it to record decisions. Without it the stock panel is read-only. The older Streamlit app (`streamlit run app/streamlit_app.py`) still works as a fallback. The visual system is in [DESIGN.md](DESIGN.md).
 
 Earth Engine pulls need `pip install -e ".[ee]"` and `EE_PROJECT` set (copy `.env.example` to `.env`).
 

@@ -68,7 +68,7 @@ button, select, input { font: inherit; color: inherit; }
 .main {
   display: grid; gap: 16px; padding: 16px 24px 12px;
   grid-template-columns: minmax(0, 1fr) 480px;
-  grid-template-rows: minmax(520px, 1fr) auto;
+  grid-template-rows: minmax(496px, 1fr) auto;
   min-height: 0;
 }
 
@@ -159,7 +159,7 @@ select { font-size: 12px; padding: 4px 8px; border: 1px solid var(--line); borde
 table { width: 100%; border-collapse: collapse; }
 th { font-size: 11px; font-weight: 600; color: var(--mute); text-align: left; padding: 10px 16px 8px; border-bottom: 1px solid var(--soft); }
 th.n { text-align: right; }
-td { padding: 0 16px; height: 44px; border-bottom: 1px solid var(--soft); font-weight: 500; }
+td { padding: 0 16px; height: 40px; border-bottom: 1px solid var(--soft); font-weight: 500; }
 tbody tr { cursor: pointer; transition: background .15s, opacity .2s; }
 tbody tr:hover { background: #eef0eb; }
 tbody tr[aria-selected="true"] { background: #e3e9f7; }
@@ -171,7 +171,7 @@ td.sc { font: 600 20px var(--cond); text-align: right; }
 .band u { position: relative; width: 96px; height: 6px; background: var(--soft); text-decoration: none; }
 .band u i { position: absolute; top: 0; bottom: 0; background: var(--red); min-width: 4px; }
 .band u.pending { width: 40px; background: none; border: 1px dashed var(--mute); height: 8px; }
-.standby tbody tr { opacity: .55; }
+.standby #act-rows tr { opacity: .55; }
 .standby td.rk { color: var(--mute); }
 
 /* replay */
@@ -189,7 +189,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 20px; background: var
 
 /* stock */
 .uptake { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
-.stk { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.stk { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
 .fig { display: flex; gap: 28px; align-items: baseline; }
 .fig div { font-size: 12px; color: var(--mute); }
 .fig b { display: block; font: 600 28px/1 var(--cond); color: var(--ink); margin-bottom: 2px; }
@@ -197,9 +197,8 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 20px; background: var
 .capwrap { position: relative; display: flex; align-items: center; height: 18px; }
 .cap { width: 34%; height: 18px; border: 2px solid var(--ink); background: var(--blue); flex: none; }
 .spill { position: relative; height: 18px; margin-left: 2px; background: repeating-linear-gradient(135deg, var(--red) 0 5px, #e8635d 5px 8px); }
-.spill span { position: absolute; right: 0; top: 22px; font-size: 11px; font-weight: 600; color: var(--red-text); white-space: nowrap; }
 .spill.cut::after { content: ''; position: absolute; right: 14px; top: -4px; bottom: -4px; width: 7px; background: var(--ice); border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); transform: skewX(-18deg); }
-.decide { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.decide { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
 .decide .btn, .btns .btn { white-space: nowrap; }
 .btns { display: inline-flex; gap: 8px; }
 .lb.flip { transform: translate(calc(-100% + 12px), calc(-100% - var(--dy))); }
@@ -236,3 +235,18 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 20px; background: var
 }
 
 .stock .ph .src { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* stock decisions and scenarios */
+.scen { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--ink); border-radius: 3px; overflow: hidden; }
+.scen button { border: 0; background: #fff; padding: 6px 10px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+.scen button + button { border-left: 1px solid var(--ink); }
+.scen b { font-size: 12px; font-weight: 600; }
+.scen span { font: 600 15px var(--cond); color: var(--red-text); }
+.scen button[aria-checked="true"] { background: var(--ink); color: #fff; }
+.scen button[aria-checked="true"] span { color: #ffb4ad; }
+.decide { flex-wrap: nowrap; }
+.decide .src { min-width: 0; }
+.actor { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
+.actor input { width: 150px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 3px; background: #fff; font-size: 13px; }
+.actor input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.decide code { font-family: ui-monospace, monospace; font-size: 11px; background: #fff; padding: 1px 4px; border: 1px solid var(--line); }

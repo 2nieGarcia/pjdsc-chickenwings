@@ -107,6 +107,8 @@ Response:
 }
 ```
 
+`plan_id` is the first 8 hex of a SHA-1 over the request, so the same inputs always give the same id.
+
 `need_caps = ceil(exposed × uptake × caps_per_person[tier] × (1 + buffer))`. Allocation goes `act_now → prepare → monitor`, higher score first within a tier.
 
 Invariants: `total_alloc ≤ stock_on_hand`; `0 ≤ alloc_caps ≤ need_caps`; `unmet_caps = need_caps − alloc_caps`. Bad uptake, buffer, stock, mode, tier, negative counts or duplicate barangays raise.

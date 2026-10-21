@@ -98,6 +98,7 @@ src/f2f/barangays.py      load() 18-barangay crosswalk + pop; to_children() 14 -
 src/f2f/ref/              navotas_barangays.csv (the only data file in git)
 src/f2f/exposure.py       present_population: resident x 0.93 + fish port inflow  [done]
 src/f2f/export.py         artifacts -> web/public/data JSON, plans via f2f.planner [done]
+src/f2f/serve.py          local server: web/dist + POST /api/decision -> audit.jsonl [done]
 src/f2f/geo.py            polygon area/centroid (no geopandas)                   [done]
 src/f2f/ingest/           fetch.py (all raw downloads, CCHAIN from HDX) [done]; cchain.py load_pidsr/load_climate/load_population [done]; rain.py [stub]; events.py load_flood_log [done]
 src/f2f/features.py       build_city_week                    [done]
@@ -130,8 +131,9 @@ Critical path: **#1 → #5 → #7 → #8 → #18**.
 | 12 | Daytime exposure scenario (done) | P1 | #9 |
 | 13 | End-to-end run.py + `manifest.json` | P0 | real run needs #1, #3, #4, #5, #7, #8, #10 |
 | 14 | Barangay tier map (offline, colour-blind safe) (done) | P0 | #2, #9 for real data |
-| 15 | Replay timeline + gate banner | P0 | #8, #5 for real data |
-| 16 | Stock panel: stable plan IDs, no double approval | P1 | soft #10 |
+| 15 | Replay timeline + gate banner (done, web/) | P0 | #8, #5 for real data |
+| 16 | Stock panel: stable plan IDs, no double approval (done, f2f.serve) | P1 | soft #10 |
+| 31 | Static dashboard in web/ (done) | P0 | none |
 | 17 | Backtest metrics card | P1 | #6 |
 | 18 | Demo script, dry runs, backup video | P0 | #8, #13, #14, #15 |
 | 19 | Data requests to MMCHD, CESU, FOI | P1 | none |

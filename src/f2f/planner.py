@@ -3,9 +3,9 @@
 The planner proposes. Nothing here moves stock; an official approves or
 rejects each plan and that decision is the only thing written down.
 """
+import hashlib
 import json
 import math
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -30,7 +30,8 @@ def make_plan(req: dict, caps_per_person: dict) -> dict:
         allocations.append({"psgc10": r["psgc10"], "need_caps": need, "alloc_caps": alloc, "unmet_caps": need - alloc})
 
     return {
-        "plan_id": uuid.uuid4().hex[:8],
+        # same inputs, same id: a re-render or re-export can never mint a second plan to approve
+        "plan_id": hashlib.sha1(json.dumps(req, sort_keys=True, default=str).encode()).hexdigest()[:8],
         "issue_date": str(req["issue_date"]),
         "exposure_mode": req["exposure_mode"],
         "uptake": req["uptake"],
