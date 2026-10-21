@@ -57,6 +57,16 @@ Split barangays got new codes 015-018. The parent's old code stays with the firs
 
 Config lists that name barangays (`gate_impaired.barangays`, `exposure.nfpc_barangays`) use `psgc10`, not names.
 
+## Daytime exposure (scenario)
+
+`f2f.exposure.present_population(cfg)` gives `pop_daytime = pop_2024 × 0.93 + fish port inflow`.
+
+- **0.93** is Navotas's day/night ratio from JICA MUCEP (194.4k by day vs 209.4k at night, 2012-14 survey).
+- **Inflow** is 30k, 40k or 50k Navotas Fish Port Complex workers (DA, Jul 2026: "at least 30,000, about 50,000 at peak"). `exposure.nfpc_scenario` in config picks one.
+- **Placement:** the inflow is split equally across the three NBBS barangays. The port's industrial strip in NBBN, Bangculasi and San Rafael Village gets none for now. Weighting by CLUP industrial land area is the upgrade.
+
+The dashboard labels every daytime number as a scenario estimate.
+
 ## Not used in Sprint 1
 
 Matsushita San Lazaro series (2001-2012), UHSLC/IOC tide, GSMaP/IMERG, ECMWF forecast rain, PAGASA station data, WorldPop/HRSL age layers, Open Buildings, MUCEP OD data, PFDA port volumes. Most come in Sprint 2 if they earn their place on the demo path.

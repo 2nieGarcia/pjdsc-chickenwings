@@ -35,7 +35,8 @@ index:
 
 exposure:
   daytime_factor: 0.93          # MUCEP day/night, 194.4k / 209.4k
-  nfpc_inflow: [30000, 40000, 50000]
+  nfpc_inflow: [30000, 40000, 50000]  # DA 2026: at least 30k, ~50k at peak
+  nfpc_scenario: 30000          # the one the pipeline uses
   nfpc_barangays:               # psgc10
     - "1380900009"              # NBBS Kaunlaran
     - "1380900015"              # NBBS Dagat-dagatan
