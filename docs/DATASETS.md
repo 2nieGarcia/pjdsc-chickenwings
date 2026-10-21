@@ -5,7 +5,7 @@
 | Use | Source | Level | Period | Licence |
 |---|---|---|---|---|
 | Training labels | CCHAIN `disease_pidsr_totals`, all 12 cities | City, weekly (Mon) | 2008-01-07 to 2022-12-26 | CC BY 4.0 |
-| Training rain | CCHAIN climate tables | Barangay, daily | 2003-2022 | CC BY 4.0 |
+| Training rain | CCHAIN `climate_atmosphere_downscaled` (reanalysis downscaled to 0.02°) | Barangay, daily; area-weighted to city | 2003-2022 | CC BY 4.0 |
 | Replay rain | CHIRPS v2 daily (Earth Engine) | 0.05° | 1981 to ~1.5 months ago | Public domain |
 | Static barangay layers | CCHAIN `project_noah_hazards` (2015), `google_open_buildings` (2023), `location` | Barangay (14, pre-2018) | Static | CC BY 4.0 |
 | Access to care | CCHAIN `mapbox_health_facility_brgy_isochrones` (2022), `geoportal_doh_poi_health` (2013) | Barangay (14, pre-2018) | Static | CC BY 4.0 |
@@ -22,7 +22,11 @@
 
 ## What the labels can and can't do
 
-Navotas PIDSR, 2008-2022: 471 cases, 780 weeks, 74.6% zero weeks. 76 weeks with ≥ 2 cases, 40 with ≥ 3, 16 with ≥ 5. About 80% of cases fall July-October. City level only, nothing after 2022.
+Navotas PIDSR, 2008-2022: 471 cases, 780 weeks, 74.6% zero weeks. 76 weeks with ≥ 2 cases, 40 with ≥ 3, 16 with ≥ 5. About 80% of cases fall July-October. City level only, nothing after 2022. These numbers are reproduced exactly by `f2f.ingest.cchain.load_pidsr` on the HDX file.
+
+There are 782 Mondays in that span but only 780 rows per city. The two missing weeks are 2012-12-31 and 2018-01-01, both year-boundary weeks. `load_pidsr` keeps them as `<NA>`, never 0.
+
+City codes: CCHAIN uses 9-digit `adm3_pcode`. `src/f2f/ref/cchain_cities.csv` maps all 12 cities to 10-digit PSGC.
 
 Consequences:
 
@@ -30,7 +34,7 @@ Consequences:
 - **Pool** the 12 CCHAIN cities. Navotas alone has ~40 positive weeks.
 - **Baselines**: B0 all-zero, B1 5-year same-week median, B2 seasonal NB GLM. On the 2021-22 holdout B0 scores MAE 0.490 and B1 0.481; a same-week *mean* does worse (0.519). Anything we claim has to beat these on the metrics that matter for action.
 - **Primary metrics**: Brier, AUC, episode recall, median lead time. MAE secondary, on all weeks and non-zero weeks.
-- **Barangay validation** can't use CCHAIN PIDSR (city code only). Until CESU data arrives, the index is checked against flood-event frequency from our log, and presented as a planning aid.
+- **Barangay validation** can't use CCHAIN at all. PIDSR is city-level, and `disease_lgu_disaggregated_totals` has **no Navotas rows** (only Tacloban, Zamboanga, Cagayan de Oro and Muntinlupa have A27 there). Until CESU data arrives, the index is checked against flood-event frequency from our log, and presented as a planning aid.
 - **2020-2021** are COVID years with under-reporting (2020: 10 cases). Flag them.
 
 ## Known traps
@@ -38,6 +42,7 @@ Consequences:
 - **14 vs 18 barangays.** CCHAIN has the 14 pre-2018 units. Tangos, Tanza and NBBS were split in Jan 2018 into Tangos North/South, Tanza 1/2 and NBBS Dagat-dagatan/Kaunlaran/Proper. Everything is keyed on 10-digit PSGC through `f2f.barangays` (see below). Parent percentages and densities are copied to each child; parent counts are split by population share. Switch to building-footprint shares if that split visibly distorts the ranking.
 - **Never sum PIDSR and FHSIS.** PIDSR is already inside FHSIS annual totals.
 - **CHIRPS vs CCHAIN rain.** We train on one and replay on the other. Check the distributions match over 2015-2022 before trusting the replay.
+- **WorldPop runs high.** `load_population` sums CCHAIN's WorldPop barangay counts per city (2000-2020; later years repeat 2020). For Navotas 2020 that gives 287,226 against 247,543 in the census, about 16% high. It's fine as a model offset, since it's consistent across the 12 cities and years. Don't quote it as a headcount; the barangay index uses POPCEN.
 - **Reporting delay.** DOH totals for the same period get revised upward for weeks. Recent case counts are never a forecast feature without a delay offset.
 - **Licences.** LiPAD: internal only, no redistribution. Global Flood Database: CC BY-NC. OSM-derived layers (none in use right now): ODbL share-alike.
 

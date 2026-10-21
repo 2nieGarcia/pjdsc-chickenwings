@@ -24,7 +24,7 @@ The PoC demo replays Typhoon Carina (July 2024). A slider moves through issue da
 ## 2. Facts about the data that shape every decision
 
 - The case labels come from Project CCHAIN `disease_pidsr_totals`: weekly (Monday) case counts per city, 12 cities, 2008-01-07 to 2022-12-26, CC BY 4.0. Navotas = PSGC `1380900000` = CCHAIN `adm3_pcode PH137503000`.
-- Navotas has 471 cases in 780 weeks, and 74.6% of weeks have zero cases. 76 weeks have ≥ 2 cases, 40 have ≥ 3 and 16 have ≥ 5. About 80% of cases fall July-October. The data is city-level only and ends in 2022.
+- Navotas has 471 cases in 780 weeks, and 74.6% of weeks have zero cases. 76 weeks have ≥ 2 cases, 40 have ≥ 3 and 16 have ≥ 5. About 80% of cases fall July-October. The data is city-level only and ends in 2022. Two weeks are missing from the source (2012-12-31, 2018-01-01) and stay null, never 0. CCHAIN has no Navotas barangay case counts at all.
 - Because of that sparsity, **predicting zero every week beats most models on MAE**. On the 2021-22 holdout, all-zero MAE = 0.490 and the 5-year same-week median = 0.481. A same-week *mean* does worse (0.519). That is why:
   - the primary target is P(elevated week), with ≥ 2 as a sensitivity run;
   - we pool all 12 CCHAIN cities, because Navotas alone has about 40 positive weeks;
@@ -97,7 +97,7 @@ src/f2f/barangays.py      load() 18-barangay crosswalk + pop; to_children() 14 -
 src/f2f/ref/              navotas_barangays.csv (the only data file in git)
 src/f2f/exposure.py       present_population: resident x 0.93 + fish port inflow  [done]
 src/f2f/geo.py            polygon area/centroid (no geopandas)                   [done]
-src/f2f/ingest/           fetch.py (all raw downloads, CCHAIN from HDX) [done]; cchain.py, rain.py [stubs]; events.py load_flood_log [done]
+src/f2f/ingest/           fetch.py (all raw downloads, CCHAIN from HDX) [done]; cchain.py load_pidsr/load_climate/load_population [done]; rain.py [stub]; events.py load_flood_log [done]
 src/f2f/features.py       build_city_week                    [stub]
 src/f2f/forecast/         baselines.py, event_model.py       [stubs]
 src/f2f/index.py          load_layers + build_index on real CCHAIN layers (NOAH, Open Buildings, Mapbox isochrones, DOH geoportal) [done]
@@ -114,8 +114,8 @@ Critical path: **#1 → #5 → #7 → #8 → #18**.
 
 | # | Issue | Priority | Needs before close |
 |---|---|---|---|
-| 1 | Load CCHAIN PIDSR and climate | P0 | none |
-| 2 | Day-1 check: barangay lepto rows, 18 polygons GeoJSON | P0 | none |
+| 1 | Load CCHAIN PIDSR and climate (done) | P0 | none |
+| 2 | Day-1 check: barangay lepto rows, 18 polygons GeoJSON (done: no Navotas barangay rows in CCHAIN) | P0 | none |
 | 3 | CHIRPS daily rain via Earth Engine | P0 | soft #2 (bbox until then) |
 | 4 | Carina 2024 flood and gate log | P0 | none |
 | 5 | Build city_week panel (C1) | P0 | #1; soft #3, #4 |
