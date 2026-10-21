@@ -7,10 +7,11 @@
 | Training labels | CCHAIN `disease_pidsr_totals`, all 12 cities | City, weekly (Mon) | 2008-01-07 to 2022-12-26 | CC BY 4.0 |
 | Training rain | CCHAIN climate tables | Barangay, daily | 2003-2022 | CC BY 4.0 |
 | Replay rain | CHIRPS v2 daily (Earth Engine) | 0.05° | 1981 to ~1.5 months ago | Public domain |
-| Static barangay layers | CCHAIN `project_noah_hazards`, `brgy_geography`, isochrones, wealth, OSM POIs | Barangay (14, pre-2018) | Static / to 2022 | CC BY 4.0, ODbL for OSM-derived |
+| Static barangay layers | CCHAIN `project_noah_hazards` (2015), `google_open_buildings` (2023), `location` | Barangay (14, pre-2018) | Static | CC BY 4.0 |
+| Health facilities | HOT OSM export via HDX | Point | Refreshed weekly upstream | ODbL |
 | Population | PSA 2024 POPCEN | Barangay (18) | 1 Jul 2024 | Public |
-| Codes | PSA PSGC 3Q-2026 datafile | Barangay | 30 Sep 2026 | Public |
-| Polygons | HDX COD-AB Philippines | adm4 | Nov 2023 | CC BY-IGO |
+| Codes | PSA PSGC | Barangay | 2023 codes, unchanged since | Public |
+| Polygons | faeldon/philippines-json-maps 2023 (PSA/NAMRIA boundaries) | Barangay (18) | 2023 | MIT |
 | Flood + gate log | DROMIC, MMDA, news (hand-built) | Barangay, per event | 2024 first, back to 2015 later | Public documents, cite each row |
 
 ## Why this set
@@ -56,6 +57,21 @@ PSA reports 2024 counts for Tangos, Tanza and NBBS only as the old parents. Thei
 Split barangays got new codes 015-018. The parent's old code stays with the first child: 009 NBBS Kaunlaran, 013 Tangos South, 014 Tanza 1.
 
 Config lists that name barangays (`gate_impaired.barangays`, `exposure.nfpc_barangays`) use `psgc10`, not names.
+
+## Barangay index inputs
+
+`python -m f2f.ingest.static` downloads these into `data/raw/`. URLs are pinned to a commit where possible.
+
+- **CCHAIN tables** come from a public mirror (`jairo3224/Leptospiros_Case_Estimation`) until someone pulls the official Kaggle files in #1. The tables are the same CCHAIN release; swap the URL in `ingest/static.py` when the official ones arrive.
+- **Polygons:** `faeldon/philippines-json-maps`, 2023, medium resolution, all 18 barangays with `adm4_psgc`. HDX COD-AB is the official alternative (#2).
+- **Health facilities:** HOT OSM. The city tags in this export are wrong in places (Navotas City Hospital is tagged Caloocan), so facilities are picked by distance, not by city.
+
+The indicators and the scaling are listed in the `src/f2f/index.py` docstring. Known weak spots:
+
+- **Split children inherit parent values.** NOAH flood shares and building stats exist only for CCHAIN's 14 units, so children of Tangos, Tanza and NBBS inherit the parent's numbers. Their population, density and distance to care are their own.
+- **Distance to care is OSM-limited.** OSM maps few barangay health centres in Navotas, so `km_to_care` under-counts real access in some barangays. The upgrade is the CLUP Table 3.7 facility list plus walking time.
+- **Gate flag is time-limited.** `gate_affected` only switches on when the scenario config has a `gate_impaired` list (Carina 2024 does). Without it the indicator is constant and drops out.
+- **No outcome validation yet.** Weights are equal and there are no barangay case counts to check against. Treat the ranking as a planning aid.
 
 ## Daytime exposure (scenario)
 

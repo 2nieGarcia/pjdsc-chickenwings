@@ -92,10 +92,14 @@ src/f2f/config.py         load(path) = base.yaml merged with the scenario file
 src/f2f/contracts.py      SPECS + check(df, name)            [done]
 src/f2f/planner.py        make_plan, log_action, plan_state  [done]
 src/f2f/fixtures.py       fake artifacts that pass contracts [done]
-src/f2f/ingest/           cchain.py, rain.py, events.py      [stubs, except load_flood_log]
+src/f2f/barangays.py      load() 18-barangay crosswalk + pop; to_children() 14 -> 18 [done]
+src/f2f/ref/              navotas_barangays.csv (the only data file in git)
+src/f2f/exposure.py       present_population: resident x 0.93 + fish port inflow  [done]
+src/f2f/geo.py            polygon area/centroid, haversine (no geopandas)        [done]
+src/f2f/ingest/           static.py (fetch barangay layers) [done]; cchain.py, rain.py [stubs]; events.py load_flood_log [done]
 src/f2f/features.py       build_city_week                    [stub]
 src/f2f/forecast/         baselines.py, event_model.py       [stubs]
-src/f2f/index.py          build_index                        [stub]
+src/f2f/index.py          load_layers + build_index on real CCHAIN/OSM layers [done]
 src/f2f/replay.py         issue_dates                        [done]
 src/f2f/run.py            pipeline entry point
 tests/                    pytest
@@ -117,10 +121,10 @@ Critical path: **#1 → #5 → #7 → #8 → #18**.
 | 6 | Baselines B0/B1/B2 + backtest harness, writes `metrics.parquet` (`model, h, split, metric, value`) | P0 | #5 for real numbers |
 | 7 | Pooled event model h=1..3, frozen cutoff | P0 | #5, #6 |
 | 8 | Carina replay forecasts (C2) | P0 | #7, #5 |
-| 9 | PSGC 14→18 crosswalk + POPCEN | P0 | none |
-| 10 | Barangay index and tiers (C3) | P0 | #9; soft #4, #12 |
+| 9 | PSGC 14→18 crosswalk + POPCEN (done) | P0 | none |
+| 10 | Barangay index and tiers (C3) (done) | P0 | #9; soft #4, #12 |
 | 11 | Monte Carlo rank bands | P1 | #10 |
-| 12 | Daytime exposure scenario | P1 | #9 |
+| 12 | Daytime exposure scenario (done) | P1 | #9 |
 | 13 | End-to-end run.py + `manifest.json` | P0 | real run needs #1, #3, #4, #5, #7, #8, #10 |
 | 14 | Barangay tier map (offline, colour-blind safe) | P0 | #2, #9 for real data |
 | 15 | Replay timeline + gate banner | P0 | #8, #5 for real data |
