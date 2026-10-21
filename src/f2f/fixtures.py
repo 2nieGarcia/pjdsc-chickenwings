@@ -9,12 +9,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from f2f import config
+from f2f import barangays, config
 from f2f.contracts import check
-
-NAMES = ["Bagumbayan North", "Bagumbayan South", "Bangculasi", "Daanghari", "Navotas East", "Navotas West",
-         "NBBN", "NBBS Dagat-dagatan", "NBBS Kaunlaran", "NBBS Proper", "San Jose", "San Rafael Village",
-         "San Roque", "Sipac-Almacen", "Tangos North", "Tangos South", "Tanza 1", "Tanza 2"]
 
 
 def write(out: Path, cfg: dict) -> Path:
@@ -36,12 +32,12 @@ def write(out: Path, cfg: dict) -> Path:
                          "cases_through": pd.Timestamp("2022-12-26")})
     check(pd.DataFrame(rows), "forecast").to_parquet(out / "forecast.parquet")
 
-    base = pd.DataFrame({"psgc10": [f"13809000{i + 1:02d}" for i in range(18)], "name": NAMES,
-                         "parent_psgc_cchain": "fixture",
-                         "hazard": rng.uniform(1, 10, 18).round(2), "exposure_res": rng.uniform(1, 10, 18).round(2),
-                         "vulnerability": rng.uniform(1, 10, 18).round(2), "coping_gap": rng.uniform(1, 10, 18).round(2)})
+    brgy = barangays.load()
+    base = brgy[["psgc10", "name", "parent_psgc_cchain"]].assign(
+        hazard=rng.uniform(1, 10, 18).round(2), exposure_res=rng.uniform(1, 10, 18).round(2),
+        vulnerability=rng.uniform(1, 10, 18).round(2), coping_gap=rng.uniform(1, 10, 18).round(2))
     base["exposure_day"] = base["exposure_res"].where(~base["name"].str.startswith("NBBS"), 10.0)
-    pop = rng.integers(5000, 25000, 18)
+    pop = brgy["pop_2024"].to_numpy()
     for mode in ("resident", "daytime"):
         df = base.copy()
         exp = df["exposure_day" if mode == "daytime" else "exposure_res"]

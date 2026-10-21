@@ -36,7 +36,10 @@ index:
 exposure:
   daytime_factor: 0.93          # MUCEP day/night, 194.4k / 209.4k
   nfpc_inflow: [30000, 40000, 50000]
-  nfpc_barangays: [NBBS Dagat-dagatan, NBBS Kaunlaran, NBBS Proper]
+  nfpc_barangays:               # psgc10
+    - "1380900009"              # NBBS Kaunlaran
+    - "1380900015"              # NBBS Dagat-dagatan
+    - "1380900016"              # NBBS Proper
 
 planner:
   caps_per_person:              # 100 mg capsules, PSMID CPG 2010 s4.2

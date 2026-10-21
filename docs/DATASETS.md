@@ -34,11 +34,28 @@ Consequences:
 
 ## Known traps
 
-- **14 vs 18 barangays.** CCHAIN has the 14 pre-2018 units. Tangos, Tanza and NBBS were split in Jan 2018 into Tangos North/South, Tanza 1/2 and NBBS Dagat-dagatan/Kaunlaran/Proper. We key everything on 10-digit PSGC and split parent values by POPCEN share. Shortcut: switch to building-footprint shares (Open Buildings) if the split visibly distorts the ranking.
+- **14 vs 18 barangays.** CCHAIN has the 14 pre-2018 units. Tangos, Tanza and NBBS were split in Jan 2018 into Tangos North/South, Tanza 1/2 and NBBS Dagat-dagatan/Kaunlaran/Proper. Everything is keyed on 10-digit PSGC through `f2f.barangays` (see below). Parent percentages and densities are copied to each child; parent counts are split by population share. Switch to building-footprint shares if that split visibly distorts the ranking.
 - **Never sum PIDSR and FHSIS.** PIDSR is already inside FHSIS annual totals.
 - **CHIRPS vs CCHAIN rain.** We train on one and replay on the other. Check the distributions match over 2015-2022 before trusting the replay.
 - **Reporting delay.** DOH totals for the same period get revised upward for weeks. Recent case counts are never a forecast feature without a delay offset.
 - **Licences.** LiPAD: internal only, no redistribution. Global Flood Database: CC BY-NC. OSM-derived layers: ODbL share-alike.
+
+## Barangay reference table
+
+`src/f2f/ref/navotas_barangays.csv`, loaded with `f2f.barangays.load()`. This is the only data file in git: 18 rows of public facts that every layer joins on.
+
+| Column | Source |
+|---|---|
+| `psgc10`, `corr_code`, `name` | PSA PSGC. PSA's site blocks scripted access, so codes were taken from two mirrors that agree: [jeffreybernadas/psgc-api](https://github.com/jeffreybernadas/psgc-api) and [faeldon/philippines-json-maps](https://github.com/faeldon/philippines-json-maps) (2023 PSGC) |
+| `parent_psgc_cchain` | CCHAIN `location` table (14 pre-2018 units, `PH137503001`…`PH137503014`) |
+| `pop_2020` | PSA 2020 CPH, per barangay. Sums to 247,543 |
+| `pop_2024` | PSA 2024 POPCEN via [CityPopulation.de](https://www.citypopulation.de/en/philippines/navotas/). Sums to 252,878 |
+
+PSA reports 2024 counts for Tangos, Tanza and NBBS only as the old parents. Their children get `parent_2024 × child's 2020 share`, rounded so the parent totals stay exact. `pop_2024_source = parent_2024_x_2020_share` marks those 7 rows. Replace them when per-barangay 2024 figures for the split barangays turn up.
+
+Split barangays got new codes 015-018. The parent's old code stays with the first child: 009 NBBS Kaunlaran, 013 Tangos South, 014 Tanza 1.
+
+Config lists that name barangays (`gate_impaired.barangays`, `exposure.nfpc_barangays`) use `psgc10`, not names.
 
 ## Not used in Sprint 1
 
