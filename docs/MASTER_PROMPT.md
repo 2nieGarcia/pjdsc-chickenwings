@@ -98,7 +98,7 @@ src/f2f/ref/              navotas_barangays.csv (the only data file in git)
 src/f2f/exposure.py       present_population: resident x 0.93 + fish port inflow  [done]
 src/f2f/geo.py            polygon area/centroid (no geopandas)                   [done]
 src/f2f/ingest/           fetch.py (all raw downloads, CCHAIN from HDX) [done]; cchain.py load_pidsr/load_climate/load_population [done]; rain.py [stub]; events.py load_flood_log [done]
-src/f2f/features.py       build_city_week                    [stub]
+src/f2f/features.py       build_city_week                    [done]
 src/f2f/forecast/         baselines.py, event_model.py       [stubs]
 src/f2f/index.py          load_layers + build_index on real CCHAIN layers (NOAH, Open Buildings, Mapbox isochrones, DOH geoportal) [done]
 src/f2f/replay.py         issue_dates                        [done]
@@ -118,7 +118,7 @@ Critical path: **#1 → #5 → #7 → #8 → #18**.
 | 2 | Day-1 check: barangay lepto rows, 18 polygons GeoJSON (done: no Navotas barangay rows in CCHAIN) | P0 | none |
 | 3 | CHIRPS daily rain via Earth Engine | P0 | soft #2 (bbox until then) |
 | 4 | Carina 2024 flood and gate log | P0 | none |
-| 5 | Build city_week panel (C1) | P0 | #1; soft #3, #4 |
+| 5 | Build city_week panel (C1) (done) | P0 | #1; soft #3, #4 |
 | 6 | Baselines B0/B1/B2 + backtest harness, writes `metrics.parquet` (`model, h, split, metric, value`) | P0 | #5 for real numbers |
 | 7 | Pooled event model h=1..3, frozen cutoff | P0 | #5, #6 |
 | 8 | Carina replay forecasts (C2) | P0 | #7, #5 |

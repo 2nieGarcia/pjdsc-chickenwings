@@ -12,7 +12,7 @@ import pandas as pd
 
 from f2f import config, contracts, features, index, replay
 from f2f.forecast import event_model
-from f2f.ingest import cchain, events, rain
+from f2f.ingest import cchain, events
 
 
 def run_id() -> str:
@@ -41,13 +41,11 @@ def main(argv=None):
     fc = contracts.check_boundaries(index.boundaries(raw))
     (out / "barangays.geojson").write_text(json.dumps(fc), encoding="utf-8")
 
-    pidsr = cchain.load_pidsr(raw)
-    # from 2015 so CHIRPS overlaps CCHAIN climate for the distribution check
-    rain_daily = rain.chirps_daily("2015-01-01", str(cfg["replay"]["issue_end"]), {})  # TODO city polygon
-    flood_log = events.load_flood_log(raw)
-
-    panel = contracts.check(features.build_city_week(pidsr, rain_daily, flood_log, cfg), "city_week")
-    panel.to_parquet(out / "city_week.parquet")
+    # CCHAIN rain stops at 2022; CHIRPS (#3) fills 2023-24 for the replay once ingest.rain is done
+    flood_log = events.load_flood_log(raw) if (raw / "events" / "flood_log.csv").exists() else None
+    panel = features.build_city_week(cchain.load_pidsr(raw), cchain.load_climate(raw), cchain.load_population(raw),
+                                     cfg, flood_log)
+    contracts.check(panel, "city_week").to_parquet(out / "city_week.parquet")
 
     issues = replay.issue_dates(cfg)
     fc = [event_model.predict(event_model.fit(panel, h, cfg), panel, issues, h) for h in cfg["horizons"]]

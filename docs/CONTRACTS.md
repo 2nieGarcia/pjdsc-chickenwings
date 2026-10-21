@@ -6,22 +6,22 @@ Types: `str`, `date` (pandas datetime64), `int` (nullable `Int64` ok), `num` (in
 
 ## C1 `city_week.parquet`
 
-One row per city per week. Pooled panel, all 12 CCHAIN cities.
+One row per city per week. Pooled panel, all 12 CCHAIN cities, every Monday from 2008-01-07 through the replay `issue_end` plus 3 weeks. Built by `features.build_city_week`.
 
 | Column | Type | Notes |
 |---|---|---|
 | `city_psgc` | str | 10-digit PSGC |
 | `week_start` | date | Monday |
-| `cases` | int | Reported PIDSR cases. Null after 2022 |
+| `cases` | int | Reported PIDSR cases. Null after 2022, and for 2012-12-31 and 2018-01-01 (missing from source) |
 | `elevated` | bool | `cases >= target.elevated_min_cases`. Null where cases is null |
-| `pop` | int | Resident population for the year |
-| `rain_wk_mm` | num | Sum of daily rain, Mon-Sun |
+| `pop` | int | WorldPop city total for the year (via CCHAIN; 2021+ repeat 2020). About 16% above census for Navotas; use it as an offset, not a headcount |
+| `rain_wk_mm` | num | Sum of daily rain, Mon-Sun. Null unless all 7 days exist. CCHAIN ends 2022-12-31, so 2023+ is null until CHIRPS (#3) |
 | `rain_lag1_mm` … `rain_lag6_mm` | num | `rain_wk_mm` k weeks earlier |
 | `rain_cum6_lag1_mm` | num | Sum of lags 1-6 |
-| `heavy_days` | int | Days ≥ `alerts.heavy_day_mm` that week |
-| `flood_event` | bool | Any flood row in the log for this city-week |
-| `gate_impaired` | bool | Navotas only; from the gate log |
-| `source` | str | e.g. `cchain_pidsr`, `chirps` |
+| `heavy_days` | int | Days ≥ `alerts.heavy_day_mm` that week. Null where `rain_wk_mm` is null |
+| `flood_event` | bool | Any `kind=flood` row in the flood log that week (Navotas only). All False until #4's log exists |
+| `gate_impaired` | bool | Navotas only; any day of the week inside the config's `gate_impaired` window |
+| `source` | str | `cchain` for now; `chirps` rows arrive with #3 |
 
 Invariants: `week_start` is a Monday; `(city_psgc, week_start)` unique.
 
