@@ -1,6 +1,6 @@
 # Contracts
 
-What each artifact looks like. `src/f2f/contracts.py` enforces C1-C3; `src/f2f/planner.py` enforces C4-C5. Change the code and this file together.
+What each artifact looks like. `src/f2f/contracts.py` enforces C1-C3 (`check`) and C6 (`check_boundaries`); `src/f2f/planner.py` enforces C4-C5. Change the code and this file together.
 
 Types: `str`, `date` (pandas datetime64), `int` (nullable `Int64` ok), `num` (int or float), `bool` (nullable `boolean` ok).
 
@@ -61,6 +61,17 @@ One file per exposure mode, one row per barangay (18).
 | `rank` | int | Under default weights |
 | `rank_p05`, `rank_p95` | int | Monte Carlo band |
 | `exposure_mode` | str | `resident` or `daytime` |
+
+## C6 `barangays.geojson`
+
+The map's shapes. A FeatureCollection with exactly 18 features, each a Polygon or MultiPolygon in lon/lat (EPSG:4326). Properties are only:
+
+| Property | Type | Notes |
+|---|---|---|
+| `psgc10` | str | Joins to C3 |
+| `name` | str | From `src/f2f/ref/navotas_barangays.csv` |
+
+The pipeline writes it from `data/raw/boundaries/navotas_brgy.geojson`; fixtures write a fake grid. The app adds tier, rank and component values at render time, and never writes them back.
 
 ## C4 plan
 

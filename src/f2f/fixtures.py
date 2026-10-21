@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from f2f import barangays, config
-from f2f.contracts import check
+from f2f.contracts import check, check_boundaries
 
 
 def write(out: Path, cfg: dict) -> Path:
@@ -50,6 +50,16 @@ def write(out: Path, cfg: dict) -> Path:
         df["exposed_n"] = (pop * df["hazard"] / 20).astype(int) + nfpc
         df["exposure_mode"] = mode
         check(df, "barangay_index").to_parquet(out / f"barangay_index_{mode}.parquet")
+
+    # 3 x 6 grid of squares, not real shapes; those come from `python -m f2f.ingest.static`
+    feats = []
+    for i, r in enumerate(brgy.itertuples()):
+        x, y = 120.93 + (i % 3) * 0.006, 14.64 + (i // 3) * 0.006
+        ring = [[x, y], [x + 0.005, y], [x + 0.005, y + 0.005], [x, y + 0.005], [x, y]]
+        feats.append({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [ring]},
+                      "properties": {"psgc10": r.psgc10, "name": r.name}})
+    fc = check_boundaries({"type": "FeatureCollection", "features": feats})
+    (out / "barangays.geojson").write_text(json.dumps(fc), encoding="utf-8")
     return out
 
 

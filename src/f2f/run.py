@@ -3,6 +3,7 @@
 Raw data in, one artifact folder out. The app only ever reads that folder.
 """
 import argparse
+import json
 import subprocess
 from datetime import date
 from pathlib import Path
@@ -37,6 +38,8 @@ def main(argv=None):
     for mode in ("resident", "daytime"):
         idx = contracts.check(index.build_index(layers, cfg, mode), "barangay_index")
         idx.to_parquet(out / f"barangay_index_{mode}.parquet")
+    fc = contracts.check_boundaries(index.boundaries(raw))
+    (out / "barangays.geojson").write_text(json.dumps(fc), encoding="utf-8")
 
     pidsr = cchain.load_pidsr(raw)
     # from 2015 so CHIRPS overlaps CCHAIN climate for the distribution check

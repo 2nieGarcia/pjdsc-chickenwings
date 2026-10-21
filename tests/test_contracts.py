@@ -73,3 +73,16 @@ def test_config_overlay():
     cfg = load(Path(__file__).parents[1] / "configs" / "carina_2024.yaml")
     assert cfg["target"]["elevated_min_cases"] == 3
     assert cfg["replay"]["name"] == "carina_2024"
+
+
+def test_boundaries_contract():
+    from f2f.contracts import check_boundaries
+    sq = {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 0]]]}
+    feats = [{"type": "Feature", "geometry": sq, "properties": {"psgc10": f"13809000{i:02d}", "name": f"b{i}"}}
+             for i in range(1, 19)]
+    check_boundaries({"type": "FeatureCollection", "features": feats})
+    with pytest.raises(ValueError, match="18 features"):
+        check_boundaries({"type": "FeatureCollection", "features": feats[:17]})
+    feats[0]["geometry"] = {"type": "Point", "coordinates": [0, 0]}
+    with pytest.raises(ValueError, match="Polygon"):
+        check_boundaries({"type": "FeatureCollection", "features": feats})

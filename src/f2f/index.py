@@ -80,6 +80,17 @@ def polygons(raw: Path) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def boundaries(raw: Path) -> dict:
+    """The barangay polygons trimmed to psgc10 + name, for the map artifact."""
+    fc = json.loads((Path(raw) / "boundaries" / "navotas_brgy.geojson").read_text(encoding="utf-8"))
+    names = barangays.load().set_index("psgc10")["name"]
+    feats = [{"type": "Feature", "geometry": f["geometry"],
+              "properties": {"psgc10": str(f["properties"]["adm4_psgc"]),
+                             "name": names[str(f["properties"]["adm4_psgc"])]}}
+             for f in fc["features"]]
+    return {"type": "FeatureCollection", "features": feats}
+
+
 def care_points(raw: Path, pad: float = 0.05) -> list[tuple[float, float]]:
     """Primary-care points from the HOT OSM export, within `pad` degrees of Navotas.
 
