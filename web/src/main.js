@@ -7,6 +7,7 @@ import '@fontsource/barlow-condensed/700.css';
 import './styles.css';
 import { gsap } from 'gsap';
 import { createCity } from './city.js';
+import { scoreRow } from './backtest.js';
 
 const $ = (id) => document.getElementById(id);
 const num = new Intl.NumberFormat('en-PH');
@@ -253,10 +254,7 @@ async function main() {
     $('bt-head').innerHTML = `<th scope="col">Metric</th>${MODELS.map(([, label], i) => `<th scope="col" class="n${i ? '' : ' ours'}">${label}</th>`).join('')}`;
     $('bt-rows').innerHTML = METRICS.map(([key, label, dir, d]) => {
       const vals = MODELS.map(([m]) => v(m, key));
-      const known = vals.filter((x) => x != null);
-      const best = dir < 0 ? Math.min(...known) : Math.max(...known);
-      const ours = vals[0];
-      const behind = ours != null && ours !== best;
+      const { best, behind } = scoreRow(vals, dir);
       const cells = vals.map((x, i) => `<td class="n${x === best ? ' best' : ''}${i === 0 ? ' ours' : ''}${i === 0 && behind ? ' behind' : ''}">
         <span class="${meta.metrics_synthetic ? 'syn' : ''}">${fmt(x, d)}</span>${i === 0 && behind ? '<em>behind</em>' : ''}</td>`).join('');
       return `<tr><th scope="row">${label}<small>${dir < 0 ? 'lower is better' : 'higher is better'}</small></th>${cells}</tr>`;

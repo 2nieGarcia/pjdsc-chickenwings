@@ -85,7 +85,7 @@ Backtest scores, written by the baseline harness (#6). The dashboard's Backtest 
 | `metric` | str | `mae`, `mae_nonzero`, `brier` (lower is better); `auc`, `episode_recall` (0-1), `lead_time_wk` (higher is better) |
 | `value` | num | NaN where a metric does not apply (B0 has no lead time) |
 
-Invariant: `(model, h, split, metric)` unique. Until #6 writes it, `python -m f2f.export` falls back to the fixture scores and flags them `metrics_synthetic`.
+Invariants: `(model, h, split, metric)` unique; `brier`, `auc` and `episode_recall` in [0, 1] (write 0.64, not 64). Until #6 writes it, `python -m f2f.export` falls back to the fixture scores and flags them `metrics_synthetic`.
 
 ## C4 plan
 

@@ -96,3 +96,5 @@ def test_metrics_contract():
         check(ok.assign(metric=["mae", "accuracy"]), "metrics")
     with pytest.raises(ValueError, match="duplicate"):
         check(ok.assign(model="b0_zero"), "metrics")
+    with pytest.raises(ValueError, match=r"\[0, 1\]"):
+        check(ok.assign(metric="episode_recall", value=[64.0, 0.5]), "metrics")

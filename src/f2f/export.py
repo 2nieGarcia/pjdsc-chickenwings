@@ -41,19 +41,13 @@ def main(argv=None):
     OUT.mkdir(parents=True, exist_ok=True)
 
     forecast_synthetic = not (run / "forecast.parquet").exists()
-    if forecast_synthetic:
-        with tempfile.TemporaryDirectory() as tmp:
-            fc = pd.read_parquet(fixtures.write(Path(tmp), cfg) / "forecast.parquet")
-    else:
-        fc = pd.read_parquet(run / "forecast.parquet")
-    (OUT / "forecast.json").write_text(json.dumps(records(fc)), encoding="utf-8")
-
     metrics_synthetic = not (run / "metrics.parquet").exists()
-    if metrics_synthetic:
-        with tempfile.TemporaryDirectory() as tmp:
-            mt = pd.read_parquet(fixtures.write(Path(tmp), cfg) / "metrics.parquet")
-    else:
-        mt = pd.read_parquet(run / "metrics.parquet")
+    with tempfile.TemporaryDirectory() as tmp:
+        # stubs not built yet fall back to the fixtures, written once and flagged synthetic in meta
+        fake = fixtures.write(Path(tmp), cfg) if forecast_synthetic or metrics_synthetic else None
+        fc = pd.read_parquet((fake if forecast_synthetic else run) / "forecast.parquet")
+        mt = pd.read_parquet((fake if metrics_synthetic else run) / "metrics.parquet")
+    (OUT / "forecast.json").write_text(json.dumps(records(fc)), encoding="utf-8")
     (OUT / "metrics.json").write_text(json.dumps(records(mt)), encoding="utf-8")
 
     plans = {}

@@ -263,6 +263,7 @@ export function createCity(canvas, labelsEl, geojson, { onSelect }) {
   });
 
   gsap.ticker.add(() => {
+    if (!canvas.clientWidth) return; // hidden behind another view: nothing to draw
     controls.update();
     renderer.render(scene, camera);
     placeLabels();
