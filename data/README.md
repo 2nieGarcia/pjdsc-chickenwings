@@ -16,7 +16,7 @@ artifacts/  <run_id>/ folders the app reads; one per pipeline run
 | `raw/chirps/` | CHIRPS v2 daily via Earth Engine | `f2f.ingest.rain.chirps_daily`, Navotas polygon, 2015-2024 |
 | `raw/events/flood_log.csv` | DSWD DROMIC PDFs, MMDA posts, news | Built by hand. Columns: `date, barangay, kind, depth_code, affected, source_url`. `kind` is `flood`, `gate_down` or `gate_up`. Every row needs a source URL |
 | `raw/boundaries/` | HDX COD-AB Philippines (adm4) | Check that all 18 Navotas barangays exist; fall back to CCHAIN's 14 if not |
-| `raw/psa/` | PSA PSGC 3Q-2026 datafile, 2024 POPCEN barangay table | XLSX as published |
+| `raw/psa/` | Not needed | The 18-barangay codes and populations ship in `src/f2f/ref/navotas_barangays.csv` (see `docs/DATASETS.md`) |
 | `raw/requests/` | Anything from MMCHD, CESU or FOI | Keep the cover letter and date received next to the file |
 
 ## Artifacts

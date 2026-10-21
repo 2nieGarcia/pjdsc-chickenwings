@@ -7,7 +7,12 @@ replay:
 gate_impaired:
   start: 2024-06-21             # first press report of the barge damage
   end: 2025-08-31               # repair target; move if the log says otherwise
-  barangays: [Tanza 1, Tanza 2, Tangos North, Tangos South, San Jose]
+  barangays:                    # psgc10, names in src/f2f/ref/navotas_barangays.csv
+    - "1380900014"              # Tanza 1
+    - "1380900018"              # Tanza 2
+    - "1380900017"              # Tangos North
+    - "1380900013"              # Tangos South
+    - "1380900010"              # San Jose (Pob.)
 
 stock:
   synthetic: true
