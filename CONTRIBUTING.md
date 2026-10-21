@@ -39,6 +39,7 @@ Squash your WIP commits before merging. Don't rewrite `main`.
 - Artifact shape changed? Update `src/f2f/contracts.py` and `docs/CONTRACTS.md` together.
 - New source? Add a row to `docs/DATASETS.md` with licence and access date.
 - Nothing from `data/` or `CONFIDENTIAL/` is staged (`git status` before every commit).
+- Line endings are LF, enforced by `.gitattributes`. If a one-line edit shows up as a whole-file diff, your editor wrote CRLF; run `git add --renormalize .`.
 
 ## Notebooks
 
