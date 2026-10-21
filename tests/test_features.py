@@ -48,6 +48,18 @@ def test_lag_k_is_k_weeks_back(cfg):
     assert row["rain_cum6_lag1_mm"] == pytest.approx(sum(row[f"rain_lag{k}_mm"] for k in range(1, 7)))
 
 
+def test_lags_survive_past_the_last_rain_week(cfg):
+    pidsr, rain, pop = inputs()
+    rain = rain[rain["date"] < "2008-03-17"]  # last full rain week is 2008-03-10
+    df = build_city_week(pidsr, rain, pop, cfg).set_index(["city_psgc", "week_start"])
+    last_rain = df.loc[(NAV, pd.Timestamp("2008-03-10")), "rain_wk_mm"]
+    two_after = df.loc[(NAV, pd.Timestamp("2008-03-24"))]
+    assert np.isnan(two_after["rain_wk_mm"]) and np.isnan(two_after["rain_lag1_mm"])
+    assert two_after["rain_lag2_mm"] == last_rain
+    # past the case data too: the weeks a forecast targets
+    assert df.loc[(NAV, pd.Timestamp("2008-04-14")), "rain_lag5_mm"] == last_rain
+
+
 def test_first_week_lags_come_from_before_the_panel(cfg):
     df = build_city_week(*inputs(), cfg)
     first = df[(df["city_psgc"] == NAV) & (df["week_start"] == "2008-01-07")].iloc[0]
