@@ -32,6 +32,12 @@ def main(argv=None):
     out = Path(cfg["paths"]["artifacts"]) / run_id()
     out.mkdir(parents=True, exist_ok=True)
 
+    # static layers first: the index doesn't wait on case data or the forecast
+    layers = index.load_layers(raw, cfg)
+    for mode in ("resident", "daytime"):
+        idx = contracts.check(index.build_index(layers, cfg, mode), "barangay_index")
+        idx.to_parquet(out / f"barangay_index_{mode}.parquet")
+
     pidsr = cchain.load_pidsr(raw)
     # from 2015 so CHIRPS overlaps CCHAIN climate for the distribution check
     rain_daily = rain.chirps_daily("2015-01-01", str(cfg["replay"]["issue_end"]), {})  # TODO city polygon
@@ -43,10 +49,6 @@ def main(argv=None):
     issues = replay.issue_dates(cfg)
     fc = [event_model.predict(event_model.fit(panel, h, cfg), panel, issues, h) for h in cfg["horizons"]]
     contracts.check(pd.concat(fc), "forecast").to_parquet(out / "forecast.parquet")
-
-    for mode in ("resident", "daytime"):
-        idx = contracts.check(index.build_index(None, cfg, mode), "barangay_index")  # TODO layers loader
-        idx.to_parquet(out / f"barangay_index_{mode}.parquet")
 
     print(f"artifacts -> {out}")
 
