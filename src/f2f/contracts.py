@@ -11,6 +11,7 @@ EXPOSURE_MODES = {"resident", "daytime"}
 SPLITS = {"train", "tune", "test"}
 # lower is better for the first three, higher for the rest
 METRICS = {"mae", "mae_nonzero", "brier", "auc", "episode_recall", "lead_time_wk"}
+PROBABILITY_METRICS = {"brier", "auc", "episode_recall"}
 
 _RAIN_LAGS = {f"rain_lag{k}_mm": "num" for k in range(1, 7)}
 
@@ -146,6 +147,9 @@ def _metrics(df):
         errs.append(f"metric not in {sorted(METRICS)}")
     if df.duplicated(["model", "h", "split", "metric"]).any():
         errs.append("duplicate (model, h, split, metric)")
+    prob = df[df["metric"].isin(PROBABILITY_METRICS)]["value"].dropna()
+    if not prob.between(0, 1).all():
+        errs.append(f"{sorted(PROBABILITY_METRICS)} must be in [0, 1] (write 0.64, not 64)")
     return errs
 
 

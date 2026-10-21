@@ -35,7 +35,7 @@ Squash your WIP commits before merging. Don't rewrite `main`.
 
 ## Before you push
 
-- `pytest -q` passes.
+- `pytest -q` passes, and `npm test` in `web/` if you touched the dashboard.
 - Artifact shape changed? Update `src/f2f/contracts.py` and `docs/CONTRACTS.md` together.
 - New source? Add a row to `docs/DATASETS.md` with licence and access date.
 - Nothing from `data/` or `CONFIDENTIAL/` is staged (`git status` before every commit).
