@@ -250,3 +250,27 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 20px; background: var
 .actor input { width: 150px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 3px; background: #fff; font-size: 13px; }
 .actor input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .decide code { font-family: ui-monospace, monospace; font-size: 11px; background: #fff; padding: 1px 4px; border: 1px solid var(--line); }
+
+/* backtest view */
+.main.bt { grid-template-columns: 1fr; grid-template-rows: auto; align-content: start; }
+.bt-lead { margin: 0; padding: 20px 24px 8px; font-size: 22px; line-height: 1.35; max-width: 68ch; }
+.bt-lead b { font: 700 26px var(--cond); }
+.bt-table { margin: 8px 0 0; }
+.bt-table th, .bt-table td { height: 52px; padding: 0 24px; }
+.bt-table thead th { height: 40px; }
+.bt-table th[scope="row"] { font-size: 14px; font-weight: 600; color: var(--ink); }
+.bt-table th[scope="row"] small { display: block; font-size: 11px; font-weight: 500; color: var(--mute); }
+.bt-table td { font: 600 22px var(--cond); }
+.bt-table td.n, .bt-table th.n { text-align: right; }
+.bt-table .ours { background: #eef2fb; }
+.bt-table th.ours { color: var(--blue); }
+.bt-table td.best span { outline: 2px solid var(--ink); outline-offset: 3px; }
+.bt-table td em { display: block; font: 600 11px 'Barlow', sans-serif; font-style: normal; color: var(--red-text); text-transform: uppercase; letter-spacing: .06em; }
+.bt-table tbody tr { cursor: default; }
+.bt-table tbody tr:hover { background: none; }
+.bt-foot { padding: 12px 24px 16px; }
+@media (max-width: 640px) {
+  .bt-lead { font-size: 17px; padding: 16px; }
+  .bt-table th, .bt-table td { padding: 0 8px; font-size: 16px; }
+  .bt-table th.n { font-size: 10px; }
+}

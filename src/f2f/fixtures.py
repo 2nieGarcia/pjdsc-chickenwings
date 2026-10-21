@@ -51,6 +51,17 @@ def write(out: Path, cfg: dict) -> Path:
         df["exposure_mode"] = mode
         check(df, "barangay_index").to_parquet(out / f"barangay_index_{mode}.parquet")
 
+    # backtest scores, invented but shaped like #6's output: the event model loses on MAE and wins on episodes
+    base = {"b0_zero": [0.49, 1.92, 0.051, 0.50, 0.00, float("nan")],
+            "b1_median": [0.48, 1.74, 0.049, 0.61, 0.25, 0.0],
+            "b2_seasonal_nb": [0.52, 1.61, 0.046, 0.66, 0.25, 0.5],
+            "event_glm": [0.55, 1.18, 0.038, 0.79, 0.75, 1.5]}
+    names = ["mae", "mae_nonzero", "brier", "auc", "episode_recall", "lead_time_wk"]
+    worse = {"mae": 1.04, "mae_nonzero": 1.06, "brier": 1.08, "auc": 0.95, "episode_recall": 0.85, "lead_time_wk": 0.8}
+    rows = [{"model": m, "h": h, "split": "test", "metric": k, "value": round(v * worse[k] ** (h - 1), 3)}
+            for m, vals in base.items() for h in cfg["horizons"] for k, v in zip(names, vals)]
+    check(pd.DataFrame(rows), "metrics").to_parquet(out / "metrics.parquet")
+
     # 3 x 6 grid of squares, not real shapes; those come from `python -m f2f.ingest.fetch`
     feats = []
     for i, r in enumerate(brgy.itertuples()):

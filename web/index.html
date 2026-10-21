@@ -9,14 +9,10 @@
 <body>
   <nav class="rail" aria-label="Main">
     <div class="mark" aria-label="Flood-to-Fever">F<span>→</span>F</div>
-    <a class="nav on" href="#replay" aria-current="page">
+    <a class="nav on" href="#replay" data-view="replay" aria-current="page">
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4l10 6-10 6z"/></svg>Replay</a>
-    <a class="nav" aria-disabled="true" title="Comes with the barangay view">
-      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/></svg>Barangays</a>
-    <a class="nav" aria-disabled="true" title="Comes with the stock panel (#16)">
-      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h14v9H3zM3 7l2-3h10l2 3M8 11h4"/></svg>Stock</a>
-    <a class="nav" aria-disabled="true" title="Comes with the audit log">
-      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h7"/></svg>Audit</a>
+    <a class="nav" href="#backtest" data-view="backtest">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 17h14M5 17V9M10 17V4M15 17v-6"/></svg>Backtest</a>
   </nav>
 
   <div class="app">
@@ -95,6 +91,21 @@
           <div class="scen" role="radiogroup" aria-label="Uptake scenario" id="scen"></div>
           <div class="decide" id="decide"></div>
         </div>
+      </section>
+    </main>
+
+    <main class="main bt" id="backtest" hidden>
+      <section class="p" aria-labelledby="h-bt">
+        <div class="ph">
+          <h2 id="h-bt">Backtest · held-out test weeks</h2><span class="src" id="bt-src"></span>
+          <div class="seg r" role="radiogroup" aria-label="Forecast horizon" id="bt-h"></div>
+        </div>
+        <p class="bt-lead" id="bt-lead"></p>
+        <table class="bt-table">
+          <thead><tr id="bt-head"></tr></thead>
+          <tbody id="bt-rows"></tbody>
+        </table>
+        <p class="foot bt-foot" id="bt-foot"></p>
       </section>
     </main>
   </div>

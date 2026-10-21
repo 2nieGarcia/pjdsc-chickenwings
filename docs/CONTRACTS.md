@@ -1,6 +1,6 @@
 # Contracts
 
-What each artifact looks like. `src/f2f/contracts.py` enforces C1-C3 (`check`) and C6 (`check_boundaries`); `src/f2f/planner.py` enforces C4-C5. Change the code and this file together.
+What each artifact looks like. `src/f2f/contracts.py` enforces C1-C3 and C7 (`check`) and C6 (`check_boundaries`); `src/f2f/planner.py` enforces C4-C5. Change the code and this file together.
 
 Types: `str`, `date` (pandas datetime64), `int` (nullable `Int64` ok), `num` (int or float), `bool` (nullable `boolean` ok).
 
@@ -72,6 +72,20 @@ The map's shapes. A FeatureCollection with exactly 18 features, each a Polygon o
 | `name` | str | From `src/f2f/ref/navotas_barangays.csv` |
 
 The pipeline writes it from `data/raw/boundaries/navotas_brgy.geojson`; fixtures write a fake grid. The app adds tier, rank and component values at render time, and never writes them back.
+
+## C7 `metrics.parquet`
+
+Backtest scores, written by the baseline harness (#6). The dashboard's Backtest view reads it.
+
+| Column | Type | Notes |
+|---|---|---|
+| `model` | str | `event_glm`, `b0_zero`, `b1_median`, `b2_seasonal_nb` (the dashboard shows these four) |
+| `h` | int | 1, 2 or 3 |
+| `split` | str | `train`, `tune`, `test`; the dashboard shows `test` |
+| `metric` | str | `mae`, `mae_nonzero`, `brier` (lower is better); `auc`, `episode_recall` (0-1), `lead_time_wk` (higher is better) |
+| `value` | num | NaN where a metric does not apply (B0 has no lead time) |
+
+Invariant: `(model, h, split, metric)` unique. Until #6 writes it, `python -m f2f.export` falls back to the fixture scores and flags them `metrics_synthetic`.
 
 ## C4 plan
 

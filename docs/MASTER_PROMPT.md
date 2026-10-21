@@ -79,6 +79,7 @@ and writes only plans/<plan_id>.json + audit.jsonl (C5) on approve/reject
   ```
   The response adds `plan_id`, `allocations [{psgc10, need_caps, alloc_caps, unmet_caps}]`, `total_need`, `total_alloc` and `status: draft`. Invariants: Σalloc ≤ stock and 0 ≤ alloc ≤ need. Bad inputs raise `ValueError`.
 - **C5 `audit.jsonl`:** `{ts, plan_id, action, actor, note}`. Transitions: created → approved | rejected, both final. `actor` is required.
+- **C7 `metrics.parquet`:** `model, h, split, metric, value`; metrics `mae, mae_nonzero, brier` (lower better), `auc, episode_recall, lead_time_wk` (higher better). #6 writes it.
 - **C6 `barangays.geojson`:** FeatureCollection of exactly 18 Polygon/MultiPolygon features in lon/lat, with properties `psgc10` and `name` only. Checked by `contracts.check_boundaries`.
 
 Changing a contract means updating `contracts.py`, `docs/CONTRACTS.md` and `fixtures.py` in the same PR.
@@ -134,7 +135,7 @@ Critical path: **#1 → #5 → #7 → #8 → #18**.
 | 15 | Replay timeline + gate banner (done, web/) | P0 | #8, #5 for real data |
 | 16 | Stock panel: stable plan IDs, no double approval (done, f2f.serve) | P1 | soft #10 |
 | 31 | Static dashboard in web/ (done) | P0 | none |
-| 17 | Backtest metrics card | P1 | #6 |
+| 17 | Backtest metrics card (done, web/ Backtest view; reads C7) | P1 | #6 |
 | 18 | Demo script, dry runs, backup video | P0 | #8, #13, #14, #15 |
 | 19 | Data requests to MMCHD, CESU, FOI | P1 | none |
 

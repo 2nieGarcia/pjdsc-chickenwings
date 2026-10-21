@@ -28,9 +28,9 @@ function fatal(html) {
 async function main() {
   let data;
   try {
-    const [meta, forecast, resident, daytime, plans, shapes] = await Promise.all(
-      ['meta.json', 'forecast.json', 'index_resident.json', 'index_daytime.json', 'plans.json', 'barangays.geojson'].map(load));
-    data = { meta, forecast, index: { resident, daytime }, plans, shapes };
+    const [meta, forecast, resident, daytime, plans, shapes, metrics] = await Promise.all(
+      ['meta.json', 'forecast.json', 'index_resident.json', 'index_daytime.json', 'plans.json', 'barangays.geojson', 'metrics.json'].map(load));
+    data = { meta, forecast, index: { resident, daytime }, plans, shapes, metrics };
   } catch (err) {
     fatal(`<p>No dashboard data yet (${err.message}).<br>Run <code>python -m f2f.run</code>, then <code>python -m f2f.export</code>.</p>`);
     return;
@@ -235,6 +235,51 @@ async function main() {
   renderMode(true);
   renderWeek();
   refreshDecisions();
+  renderBacktest();
+  window.addEventListener('hashchange', route);
+  route();
+
+  // backtest: every number and the headline sentence come from metrics.json, nothing typed by hand
+  function renderBacktest(h = 2) {
+    const MODELS = [['event_glm', 'Event model'], ['b0_zero', 'B0 all-zero'], ['b1_median', 'B1 same-week median'], ['b2_seasonal_nb', 'B2 seasonal NB']];
+    const METRICS = [['mae', 'MAE, all weeks', -1, 2], ['mae_nonzero', 'MAE, weeks with cases', -1, 2], ['brier', 'Brier score', -1, 3],
+      ['auc', 'AUC', 1, 2], ['episode_recall', 'Episodes caught', 1, 'pct'], ['lead_time_wk', 'Median lead time, weeks', 1, 1]];
+    const hs = [...new Set(data.metrics.map((r) => r.h))].sort();
+    const v = (model, metric) => data.metrics.find((r) => r.model === model && r.metric === metric && r.h === h && r.split === 'test')?.value ?? null;
+    const fmt = (x, d) => (x == null ? '–' : d === 'pct' ? `${Math.round(x * 100)}%` : x.toFixed(d));
+    $('bt-h').innerHTML = hs.map((x) => `<button role="radio" aria-checked="${x === h}" data-h="${x}">Week +${x}</button>`).join('');
+    $('bt-src').textContent = meta.metrics_synthetic ? 'synthetic scores until the baselines land (#6)' : 'test split';
+    $('bt-src').classList.toggle('syn', meta.metrics_synthetic);
+    $('bt-head').innerHTML = `<th scope="col">Metric</th>${MODELS.map(([, label], i) => `<th scope="col" class="n${i ? '' : ' ours'}">${label}</th>`).join('')}`;
+    $('bt-rows').innerHTML = METRICS.map(([key, label, dir, d]) => {
+      const vals = MODELS.map(([m]) => v(m, key));
+      const known = vals.filter((x) => x != null);
+      const best = dir < 0 ? Math.min(...known) : Math.max(...known);
+      const ours = vals[0];
+      const behind = ours != null && ours !== best;
+      const cells = vals.map((x, i) => `<td class="n${x === best ? ' best' : ''}${i === 0 ? ' ours' : ''}${i === 0 && behind ? ' behind' : ''}">
+        <span class="${meta.metrics_synthetic ? 'syn' : ''}">${fmt(x, d)}</span>${i === 0 && behind ? '<em>behind</em>' : ''}</td>`).join('');
+      return `<tr><th scope="row">${label}<small>${dir < 0 ? 'lower is better' : 'higher is better'}</small></th>${cells}</tr>`;
+    }).join('');
+    const [m0, mo, r0, ro, lt] = [v('b0_zero', 'mae'), v('event_glm', 'mae'), v('b0_zero', 'episode_recall'), v('event_glm', 'episode_recall'), v('event_glm', 'lead_time_wk')];
+    $('bt-lead').innerHTML = m0 != null && mo != null && r0 != null && ro != null
+      ? `On MAE, predicting zero every week scores <b>${m0.toFixed(2)}</b> against our <b>${mo.toFixed(2)}</b>${mo > m0 ? ', so zero wins' : ''}. But zero catches <b>${Math.round(r0 * 100)}%</b> of outbreak episodes; the event model catches <b>${Math.round(ro * 100)}%</b>${lt != null ? `, a median <b>${lt.toFixed(1)}</b> weeks ahead` : ''}.`
+      : 'Scores for this horizon are incomplete.';
+    $('bt-foot').textContent = 'Episode = a run of weeks with 3 or more cases. Caught = an alert fired in the 3 weeks before the episode started. Best value per row is boxed; "behind" marks rows where a baseline beats the event model.';
+  }
+  $('bt-h').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) renderBacktest(Number(b.dataset.h)); });
+
+  function route() {
+    const view = location.hash === '#backtest' ? 'backtest' : 'replay';
+    $('replay').hidden = view !== 'replay';
+    $('backtest').hidden = view !== 'backtest';
+    document.querySelector('.top h1').textContent = view === 'backtest' ? 'Navotas City · how good is the forecast' : 'Navotas City · Carina 2024 replay';
+    document.querySelectorAll('.rail .nav').forEach((a) => {
+      const on = a.dataset.view === view;
+      a.classList.toggle('on', on);
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+  }
 }
 
 main();
