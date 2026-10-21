@@ -33,4 +33,4 @@ plans/<plan_id>.json      written by the app on approve/reject
 audit.jsonl               written by the app
 ```
 
-Shapes are in [docs/CONTRACTS.md](../docs/CONTRACTS.md).
+Shapes are in [docs/CONTRACTS.md](../docs/CONTRACTS.md). `python -m f2f.export` copies the newest run into `web/public/data/` as JSON for the dashboard (also gitignored).

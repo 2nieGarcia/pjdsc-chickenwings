@@ -86,7 +86,8 @@ Changing a contract means updating `contracts.py`, `docs/CONTRACTS.md` and `fixt
 ## 5. Repo
 
 ```
-app/streamlit_app.py      dashboard (reads artifacts only; F2F_ARTIFACTS env var overrides the folder); tier map [done]
+web/                      the dashboard: Vite + three.js + GSAP; reads web/public/data/*.json written by `python -m f2f.export`; visual rules in DESIGN.md
+app/streamlit_app.py      older Streamlit dashboard, kept as a fallback
 configs/base.yaml         paths, target, split, alert cut-points, index, exposure, planner
 configs/carina_2024.yaml  replay window, gate window, synthetic stock
 src/f2f/config.py         load(path) = base.yaml merged with the scenario file
@@ -96,6 +97,7 @@ src/f2f/fixtures.py       fake artifacts that pass contracts [done]
 src/f2f/barangays.py      load() 18-barangay crosswalk + pop; to_children() 14 -> 18 [done]
 src/f2f/ref/              navotas_barangays.csv (the only data file in git)
 src/f2f/exposure.py       present_population: resident x 0.93 + fish port inflow  [done]
+src/f2f/export.py         artifacts -> web/public/data JSON, plans via f2f.planner [done]
 src/f2f/geo.py            polygon area/centroid (no geopandas)                   [done]
 src/f2f/ingest/           fetch.py (all raw downloads, CCHAIN from HDX) [done]; cchain.py load_pidsr/load_climate/load_population [done]; rain.py [stub]; events.py load_flood_log [done]
 src/f2f/features.py       build_city_week                    [done]
@@ -106,7 +108,7 @@ src/f2f/run.py            pipeline entry point
 tests/                    pytest
 ```
 
-Stack: Python 3.11+, pandas, numpy, pyarrow, statsmodels, scikit-learn, streamlit (pydeck for maps), pyyaml, pytest. Optional extras: geopandas, earthengine-api, lightgbm (Sprint 2). Don't add a dependency for something a few lines can do.
+Stack: Python 3.11+, pandas, numpy, pyarrow, statsmodels, scikit-learn, pyyaml, pytest; the dashboard in web/ is Vite + three.js + GSAP (npm, pinned in web/package-lock.json); streamlit only for the fallback app. Optional extras: geopandas, earthengine-api, lightgbm (Sprint 2). Don't add a dependency for something a few lines can do.
 
 ## 6. Sprint 1 issues (GitHub milestone "Sprint 1 PoC")
 

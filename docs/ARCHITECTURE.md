@@ -17,6 +17,20 @@ app/streamlit_app.py
     writes  plans/<plan_id>.json + audit.jsonl on approve/reject  (C5)
 ```
 
+## Front end
+
+`web/` is a static Vite app: three.js for the crate city, GSAP for motion, Barlow fonts bundled. `python -m f2f.export` turns one artifact folder into `web/public/data/`:
+
+| File | From |
+|---|---|
+| `meta.json` | run id, freshness dates, synthetic flags, alert thresholds, gate window |
+| `forecast.json` | C2, or the fixture forecast flagged `forecast_synthetic` while the model is a stub |
+| `index_resident.json`, `index_daytime.json` | C3 |
+| `barangays.geojson` | C6 |
+| `plans.json` | `f2f.planner.make_plan` per exposure mode and uptake scenario, so allocation logic lives only in Python |
+
+The browser never computes allocation and never writes files. Recording an approval goes through Python (#16). The visual rules are in `DESIGN.md`; product context is in `PRODUCT.md`.
+
 ## Boundary
 
 In: weekly city forecast, barangay ranking, exposure scenarios, capsule arithmetic, a record of who approved what.

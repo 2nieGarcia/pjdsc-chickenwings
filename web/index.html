@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flood-to-Fever · Navotas</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='2' fill='%231f4fbf'/%3E%3Crect x='3' y='4' width='10' height='3' fill='%23d6322b'/%3E%3Crect x='3' y='9' width='10' height='3' fill='%2386c5e8'/%3E%3C/svg%3E">
+</head>
+<body>
+  <nav class="rail" aria-label="Main">
+    <div class="mark" aria-label="Flood-to-Fever">F<span>→</span>F</div>
+    <a class="nav on" href="#replay" aria-current="page">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4l10 6-10 6z"/></svg>Replay</a>
+    <a class="nav" aria-disabled="true" title="Comes with the barangay view">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/></svg>Barangays</a>
+    <a class="nav" aria-disabled="true" title="Comes with the stock panel (#16)">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h14v9H3zM3 7l2-3h10l2 3M8 11h4"/></svg>Stock</a>
+    <a class="nav" aria-disabled="true" title="Comes with the audit log">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h7"/></svg>Audit</a>
+  </nav>
+
+  <div class="app">
+    <header class="top">
+      <h1>Navotas City · Carina 2024 replay</h1>
+      <span class="chip" id="chip-rain"><i></i><span></span></span>
+      <span class="chip stale" id="chip-cases"><i></i><span></span></span>
+      <span class="run">run <b id="run-id"></b></span>
+    </header>
+
+    <main class="main" id="replay">
+      <section class="p map" aria-labelledby="h-map">
+        <div class="ph">
+          <h2 id="h-map">Priority by barangay</h2>
+          <span class="src" id="map-src"></span>
+          <div class="seg r" role="radiogroup" aria-label="Exposure">
+            <button role="radio" aria-checked="true" data-mode="resident">Residents</button>
+            <button role="radio" aria-checked="false" data-mode="daytime">Daytime</button>
+          </div>
+        </div>
+        <div class="stage" id="stage">
+          <canvas id="city" aria-label="Navotas barangays as crate stacks; stack height is priority score"></canvas>
+          <div class="labels" id="labels" aria-hidden="true"></div>
+          <p class="stage-note" id="stage-note" hidden></p>
+        </div>
+        <div class="lg">
+          <span class="key" id="standby-key" hidden><span class="sw S"></span>Standby</span><span class="key"><span class="sw A"></span>Act now</span><span class="key"><span class="sw P"></span>Prepare</span><span class="key"><span class="sw M"></span>Monitor</span>
+          <span class="key"><span class="sw wt"></span><span class="syn" id="water-note">Water level, illustrative</span></span>
+          <span class="gate" id="gate-note"></span>
+        </div>
+      </section>
+
+      <div class="col">
+        <section class="p" aria-labelledby="h-fc">
+          <div class="ph"><h2 id="h-fc">P(elevated week)</h2><span class="src r" id="fc-src"></span></div>
+          <div class="wk" id="weeks"></div>
+          <div class="foot" id="fc-foot"></div>
+        </section>
+        <section class="p" aria-labelledby="h-act">
+          <div class="ph"><h2 id="h-act">Act now</h2><span class="src" id="act-src">priority index · rank bands pending (#11)</span></div>
+          <table>
+            <thead><tr><th scope="col">#</th><th scope="col">Barangay</th><th scope="col" class="n">Score</th><th scope="col">Rank band</th></tr></thead>
+            <tbody id="act-rows"></tbody>
+          </table>
+        </section>
+      </div>
+
+      <section class="p replay" aria-labelledby="h-replay">
+        <div class="ph">
+          <h2 id="h-replay">Replay</h2><output class="cur" id="cur-date" for="scrub"></output>
+          <span class="btns">
+            <button class="btn" id="prev" type="button">Prev week</button>
+            <button class="btn pri" id="play" type="button">Play</button>
+            <button class="btn" id="next" type="button">Next week</button>
+          </span>
+          <span class="src r" id="rain-src"></span>
+        </div>
+        <div class="rb">
+          <svg class="bars" id="bars" role="img" aria-label="Weekly rain"></svg>
+          <input type="range" id="scrub" min="0" max="6" step="1" value="3" aria-label="Replay issue date">
+          <div class="ticks" id="ticks"></div>
+        </div>
+      </section>
+
+      <section class="p stock" aria-labelledby="h-stock">
+        <div class="ph">
+          <h2 id="h-stock">Doxycycline</h2><span class="src" id="stock-src"></span>
+          <label class="r uptake">Uptake
+            <select id="uptake"></select></label>
+        </div>
+        <div class="stk">
+          <div class="fig">
+            <div><b class="syn" id="onhand"></b>on hand <span class="syn">(synthetic)</span></div>
+            <div><b id="need"></b>need</div>
+            <div><b class="red" id="unmet"></b>unmet</div>
+          </div>
+          <div class="capwrap"><div class="cap"></div><div class="spill" id="spill"><span id="spill-x"></span></div></div>
+          <div class="decide" id="decide">
+            <button class="btn pri" id="approve" type="button">Approve plan</button>
+            <button class="btn" id="reject" type="button">Reject</button>
+            <span class="src">Nothing is dispatched from here.</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="fatal" id="fatal" hidden></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
