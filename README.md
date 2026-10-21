@@ -33,15 +33,19 @@ Get the raw data into `data/raw/` (see [data/README.md](data/README.md)), then:
 ```bash
 python -m f2f.ingest.fetch                           # CCHAIN tables from HDX + polygons, ~260 MB
 python -m f2f.run --config configs/carina_2024.yaml   # writes data/artifacts/<run_id>/
-streamlit run app/streamlit_app.py
+python -m f2f.export                                 # artifacts -> web/public/data/*.json
+cd web && npm install && npm run dev                 # the dashboard, http://127.0.0.1:5173
 ```
+
+The dashboard is a static Vite app (three.js + GSAP, fonts bundled), so it runs with Wi-Fi off once `npm install` has run. `npm run build` writes `web/dist/`. The older Streamlit app (`streamlit run app/streamlit_app.py`) still works as a fallback. The visual system is in [DESIGN.md](DESIGN.md).
 
 Earth Engine pulls need `pip install -e ".[ee]"` and `EE_PROJECT` set (copy `.env.example` to `.env`).
 
 ## Layout
 
 ```
-app/            Streamlit dashboard, reads artifacts only
+web/            the dashboard: Vite + three.js + GSAP, reads web/public/data/*.json
+app/            older Streamlit dashboard (fallback)
 configs/        base.yaml + one file per replay scenario
 data/           not in git; raw/, interim/, artifacts/
 docs/           architecture, contracts, datasets, sprint plan
