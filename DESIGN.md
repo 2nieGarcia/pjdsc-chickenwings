@@ -257,7 +257,8 @@ Freshness facts in the top bar.
 - **Internal Padding:** 16px sides. Content rhythm uses 12-16px.
 
 ### Inputs / Fields
-- **Select:** paper fill, 1px line border, 3px radius, 12px text.
+- **Text field:** paper fill, 1px line border, 3px radius, 13px text, 2px ink focus ring.
+- **Scenario control:** a segmented control of equal buttons with a 1px ink frame; each button holds a 12px label and a 15px condensed figure.
 - **Replay scrubber:** a 4px track with ink progress over the line colour. The thumb is a 14x22px ink block with a 2px ice border and a 2px radius. Tick dates sit below in 11px mute.
 
 ### Navigation
@@ -273,10 +274,10 @@ The main surface. It is a three.js orthographic scene of the 18 barangay plates 
 Three columns split by soft rules. Each column has a mute "Week +n" line with either a WARNING/WATCH tag or the target date. Below that is the 60px condensed probability, coloured red-text, watch-text or ink by alert level, with a dashed underline while the forecast is synthetic. At the bottom is a 22px history sparkline of 7px bars, with the current week in the alert colour.
 
 ### Act-Now Table
-44px rows with soft rules. The rank is a 20px/700 condensed numeral in red-text. The score is a right-aligned 20px condensed numeral. The rank band is a 96px soft track with a red span for the p05-p95 interval. While bands are pending, it shows a dashed empty box and the word "pending" with a dashed underline. Rows are focusable and select on Enter or Space.
+40px rows with soft rules. The rank is a 20px/700 condensed numeral in red-text. The score is a right-aligned 20px condensed numeral. The rank band is a 96px soft track with a red span for the p05-p95 interval. While bands are pending, it shows a dashed empty box and the word "pending" with a dashed underline. Rows are focusable and select on Enter or Space.
 
 ### Stock Strip
-Three condensed headline figures, with unmet in red-text. Below them is a fixed-width capacity block: banyera-blue with a 2px ink border, set at 34% of the strip. The unmet amount spills to its right as a red 135-degree hatch. When the spill is too long to draw, it gets a skewed ice break mark with ink edges, and the overflow ratio is written in text underneath. Approve and Reject sit below the strip. After a decision they are replaced by a stamp: 15px/700 condensed uppercase with 0.06em tracking, a 2px border, blue for approved and red-text for rejected.
+Three condensed headline figures, with unmet in red-text. Below them is a fixed-width capacity block: banyera-blue with a 2px ink border, set at 34% of the strip. The unmet amount spills to its right as a red 135-degree hatch. When the spill is too long to draw, it gets a skewed ice break mark with ink edges, and the overflow ratio is written in the unmet caption ("unmet · 14.6× on hand"). Under the strip, the three uptake scenarios sit side by side as a segmented control: each button names its uptake and its unmet figure in red-text condensed, and the selected one is ink with paper text. Below that, one row: an "Official" text field, then Approve and Reject, both disabled until a name is typed and while a request is in flight. Decisions are recorded by the local Python server; the page only shows what the audit log says. After a decision the row is replaced by a stamp: 15px/700 condensed uppercase with 0.06em tracking, a 2px border, blue for approved and red-text for rejected.
 
 ## Do's and Don'ts
 

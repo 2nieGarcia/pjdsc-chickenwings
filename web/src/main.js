@@ -37,7 +37,7 @@ async function main() {
   }
   const { meta } = data;
   const weeks = [...new Set(data.forecast.map((r) => r.issue_date))].sort();
-  const state = { mode: 'resident', week: Math.min(3, weeks.length - 1), uptake: String(meta.uptake_default), decided: null };
+  const state = { mode: 'resident', week: Math.min(3, weeks.length - 1), uptake: String(meta.uptake_default), decisions: {}, serverUp: false };
   const names = Object.fromEntries(data.index.resident.map((r) => [r.psgc10, r.name]));
 
   // static header facts
@@ -47,8 +47,6 @@ async function main() {
   $('fc-src').textContent = meta.forecast_synthetic ? 'synthetic forecast · model pending (#7)' : `model ${data.forecast[0].model}`;
   $('fc-src').classList.toggle('syn', meta.forecast_synthetic);
   $('rain-src').innerHTML = `weekly rain, mm · solid = observed by the issue date · <span class="syn">${meta.rain_synthetic ? 'illustrative until CHIRPS (#3)' : 'CHIRPS'}</span>`;
-  $('uptake').innerHTML = Object.keys(data.plans.resident).map((u) => `<option value="${u}">${Math.round(u * 100)}%</option>`).join('');
-  $('uptake').value = state.uptake;
   $('scrub').max = weeks.length - 1;
   $('ticks').innerHTML = weeks.map((w) => `<span>${dmy(w)}</span>`).join('');
 
@@ -151,21 +149,66 @@ async function main() {
     $('spill').style.width = `${Math.min(64, 34 * ratio)}%`;
     $('spill').classList.toggle('cut', 34 * ratio > 64); // drawn truncated, so it carries a break mark
     $('stock-src').textContent = `${dmy(plan.issue_date)} plan · ${state.mode === 'daytime' ? 'daytime scenario' : 'residents'} · f2f.planner`;
-    $('spill-x').textContent = ratio > 1.9 ? `unmet is ${ratio.toFixed(1)}× what is on hand` : `unmet ${num.format(unmet)}`;
-    if (state.decided?.plan !== plan.plan_id) resetDecision();
+    $('unmet-x').textContent = ratio > 1.9 ? `unmet · ${ratio.toFixed(1)}× on hand` : 'unmet';
+    $('scen').innerHTML = Object.entries(data.plans[state.mode]).map(([u, p]) =>
+      `<button type="button" role="radio" aria-checked="${u === state.uptake}" data-u="${u}"><b>${Math.round(u * 100)}% uptake</b><span>unmet ${num.format(p.total_need - p.total_alloc)}</span></button>`).join('');
+    renderDecision();
   }
 
-  function resetDecision() {
-    state.decided = null;
-    $('decide').innerHTML = `<button class="btn pri" id="approve" type="button">Approve plan</button><button class="btn" id="reject" type="button">Reject</button><span class="src">Nothing is dispatched from here.</span>`;
+  // decisions are recorded by `python -m f2f.serve`; the page only asks and shows what the log says
+  async function refreshDecisions() {
+    try {
+      const res = await fetch('api/decisions');
+      if (!res.ok) throw new Error(res.status);
+      state.decisions = await res.json();
+      state.serverUp = true;
+    } catch {
+      state.serverUp = false;
+    }
+    renderDecision();
   }
-  $('decide').addEventListener('click', (e) => {
-    const action = e.target.id === 'approve' ? 'approved' : e.target.id === 'reject' ? 'rejected' : null;
-    if (!action) return;
+
+  function renderDecision(animate = false) {
     const plan = data.plans[state.mode][state.uptake];
-    state.decided = { plan: plan.plan_id, action };
-    $('decide').innerHTML = `<span class="stamp ${action}">${action}</span><span class="src">Plan ${plan.plan_id} · template only, not written to the audit log until #16 wires the local endpoint.</span>`;
-    if (!reduce) gsap.from('#decide .stamp', { scale: 1.6, opacity: 0, rotate: -8, duration: 0.5, ease: 'expo.out' });
+    const done = state.decisions[plan.plan_id];
+    const box = $('decide');
+    if (done) {
+      const when = new Date(done.ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      box.innerHTML = `<span class="stamp ${done.action}">${done.action}</span><span class="src">Plan ${plan.plan_id} · ${done.actor} · ${when} · logged to audit.jsonl. Nothing is dispatched from here.</span>`;
+      if (animate && !reduce) gsap.from('#decide .stamp', { scale: 1.6, opacity: 0, rotate: -8, duration: 0.5, ease: 'expo.out' });
+      return;
+    }
+    const actor = box.querySelector('#actor')?.value ?? '';
+    box.innerHTML = `<label class="actor">Official <input id="actor" maxlength="80" autocomplete="name" value=""></label>
+      <button class="btn pri" id="approve" type="button" disabled>Approve plan</button><button class="btn" id="reject" type="button" disabled>Reject</button>
+      <span class="src" id="decide-msg">${state.serverUp ? '' : 'Read-only: start <code>python -m f2f.serve</code>'}</span>`;
+    box.querySelector('#actor').value = actor;
+    syncButtons();
+  }
+  const syncButtons = () => {
+    const ok = state.serverUp && $('actor')?.value.trim();
+    ['approve', 'reject'].forEach((id) => { if ($(id)) $(id).disabled = !ok; });
+  };
+  $('decide').addEventListener('input', syncButtons);
+  $('decide').addEventListener('click', async (e) => {
+    const action = e.target.id === 'approve' ? 'approved' : e.target.id === 'reject' ? 'rejected' : null;
+    if (!action || e.target.disabled) return;
+    const plan = data.plans[state.mode][state.uptake];
+    ['approve', 'reject'].forEach((id) => { $(id).disabled = true; }); // one request in flight, never two
+    try {
+      const res = await fetch('api/decision', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan_id: plan.plan_id, action, actor: $('actor').value }),
+      });
+      const body = await res.json();
+      if (res.ok) state.decisions[plan.plan_id] = { action: body.action, actor: body.actor, ts: body.ts };
+      else if (res.status === 409) state.decisions = body.decisions;
+      else { $('decide-msg').textContent = `Not recorded: ${body.error}`; syncButtons(); return; }
+      renderDecision(true);
+    } catch {
+      $('decide-msg').textContent = 'Not recorded: the local server stopped. Restart python -m f2f.serve.';
+      syncButtons();
+    }
   });
 
   // replay controls
@@ -187,10 +230,11 @@ async function main() {
     document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
     renderMode();
   }));
-  $('uptake').addEventListener('change', (e) => { state.uptake = e.target.value; renderStock(); });
+  $('scen').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { state.uptake = b.dataset.u; renderStock(); } });
 
   renderMode(true);
   renderWeek();
+  refreshDecisions();
 }
 
 main();

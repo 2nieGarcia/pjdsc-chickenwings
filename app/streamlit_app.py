@@ -11,7 +11,7 @@ import pydeck as pdk
 import streamlit as st
 
 from f2f import config, geo
-from f2f.planner import log_action, make_plan
+from f2f.planner import log_action, make_plan, plan_state
 
 # Okabe-Ito, readable with the common colour-vision deficiencies; tier is also spelled out in the tooltip
 TIER_RGB = {"act_now": [213, 94, 0, 210], "prepare": [230, 159, 0, 190], "monitor": [86, 180, 233, 170]}
@@ -105,6 +105,11 @@ for col, action in zip(st.columns(2), ["approved", "rejected"]):
     if col.button(action.capitalize(), disabled=not actor.strip()):
         (run / "plans").mkdir(exist_ok=True)
         (run / "plans" / f"{plan['plan_id']}.json").write_text(json.dumps(plan, indent=2), encoding="utf-8")
-        log_action(audit, plan["plan_id"], "created", "dashboard")
-        log_action(audit, plan["plan_id"], action, actor, note)
+        try:
+            if plan_state(audit, plan["plan_id"]) is None:
+                log_action(audit, plan["plan_id"], "created", "dashboard")
+            log_action(audit, plan["plan_id"], action, actor, note)
+        except ValueError as err:  # already decided: plan ids are stable, so a second decision is refused
+            st.error(str(err))
+            st.stop()
         st.success(f"Plan {plan['plan_id']} {action} by {actor.strip()}. Nothing is dispatched from here.")

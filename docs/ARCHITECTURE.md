@@ -29,7 +29,7 @@ app/streamlit_app.py
 | `barangays.geojson` | C6 |
 | `plans.json` | `f2f.planner.make_plan` per exposure mode and uptake scenario, so allocation logic lives only in Python |
 
-The browser never computes allocation and never writes files. Recording an approval goes through Python (#16). The visual rules are in `DESIGN.md`; product context is in `PRODUCT.md`.
+The browser never computes allocation and never writes files. `python -m f2f.serve` serves `web/dist` on 127.0.0.1 and takes `POST /api/decision`; it validates the request, saves the plan to `plans/<plan_id>.json` and appends to the run's `audit.jsonl` through `f2f.planner.log_action`, whose state machine refuses a second decision (HTTP 409). Plan ids are a hash of the planner's inputs, so the same plan keeps the same id across renders and exports. The visual rules are in `DESIGN.md`; product context is in `PRODUCT.md`.
 
 ## Boundary
 

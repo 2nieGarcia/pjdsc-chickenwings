@@ -84,21 +84,16 @@
       <section class="p stock" aria-labelledby="h-stock">
         <div class="ph">
           <h2 id="h-stock">Doxycycline</h2><span class="src" id="stock-src"></span>
-          <label class="r uptake">Uptake
-            <select id="uptake"></select></label>
         </div>
         <div class="stk">
           <div class="fig">
             <div><b class="syn" id="onhand"></b>on hand <span class="syn">(synthetic)</span></div>
             <div><b id="need"></b>need</div>
-            <div><b class="red" id="unmet"></b>unmet</div>
+            <div><b class="red" id="unmet"></b><span id="unmet-x">unmet</span></div>
           </div>
-          <div class="capwrap"><div class="cap"></div><div class="spill" id="spill"><span id="spill-x"></span></div></div>
-          <div class="decide" id="decide">
-            <button class="btn pri" id="approve" type="button">Approve plan</button>
-            <button class="btn" id="reject" type="button">Reject</button>
-            <span class="src">Nothing is dispatched from here.</span>
-          </div>
+          <div class="capwrap"><div class="cap"></div><div class="spill" id="spill"></div></div>
+          <div class="scen" role="radiogroup" aria-label="Uptake scenario" id="scen"></div>
+          <div class="decide" id="decide"></div>
         </div>
       </section>
     </main>
