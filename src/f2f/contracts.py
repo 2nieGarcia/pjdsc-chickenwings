@@ -8,6 +8,9 @@ from pandas.api import types as pt
 ALERTS = {"none", "watch", "warning"}
 TIERS = {"act_now", "prepare", "monitor"}
 EXPOSURE_MODES = {"resident", "daytime"}
+SPLITS = {"train", "tune", "test"}
+# lower is better for the first three, higher for the rest
+METRICS = {"mae", "mae_nonzero", "brier", "auc", "episode_recall", "lead_time_wk"}
 
 _RAIN_LAGS = {f"rain_lag{k}_mm": "num" for k in range(1, 7)}
 
@@ -40,6 +43,13 @@ SPECS = {
         "model": "str",
         "rain_through": "date",
         "cases_through": "date",
+    },
+    "metrics": {
+        "model": "str",
+        "h": "int",
+        "split": "str",
+        "metric": "str",
+        "value": "num",
     },
     "barangay_index": {
         "psgc10": "str",
@@ -126,7 +136,20 @@ def _barangay_index(df):
     return errs
 
 
-_INVARIANTS = {"city_week": _city_week, "forecast": _forecast, "barangay_index": _barangay_index}
+def _metrics(df):
+    errs = []
+    if not df["h"].isin([1, 2, 3]).all():
+        errs.append("h must be 1, 2 or 3")
+    if not df["split"].isin(SPLITS).all():
+        errs.append(f"split not in {sorted(SPLITS)}")
+    if not df["metric"].isin(METRICS).all():
+        errs.append(f"metric not in {sorted(METRICS)}")
+    if df.duplicated(["model", "h", "split", "metric"]).any():
+        errs.append("duplicate (model, h, split, metric)")
+    return errs
+
+
+_INVARIANTS = {"city_week": _city_week, "forecast": _forecast, "barangay_index": _barangay_index, "metrics": _metrics}
 
 
 def check_boundaries(fc: dict) -> dict:

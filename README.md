@@ -44,7 +44,7 @@ cd web && npm run build && cd ..
 python -m f2f.serve                                  # http://127.0.0.1:8600, localhost only
 ```
 
-In `npm run dev`, Vite proxies `/api` to the same server, so start `python -m f2f.serve` alongside it to record decisions. Without it the stock panel is read-only. The older Streamlit app (`streamlit run app/streamlit_app.py`) still works as a fallback. The visual system is in [DESIGN.md](DESIGN.md).
+Two views: **Replay** (the Carina 2024 replay) and **Backtest** (`#backtest`: the event model against the B0/B1/B2 baselines, the demo's closing beat). In `npm run dev`, Vite proxies `/api` to the same server, so start `python -m f2f.serve` alongside it to record decisions. Without it the stock panel is read-only. The older Streamlit app (`streamlit run app/streamlit_app.py`) still works as a fallback. The visual system is in [DESIGN.md](DESIGN.md).
 
 Earth Engine pulls need `pip install -e ".[ee]"` and `EE_PROJECT` set (copy `.env.example` to `.env`).
 

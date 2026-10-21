@@ -11,7 +11,7 @@ def test_export_writes_everything_the_web_app_reads(tmp_path, monkeypatch):
     export.main(["--run", str(run)])
 
     assert {p.name for p in out.iterdir()} == {
-        "meta.json", "forecast.json", "index_resident.json", "index_daytime.json", "plans.json", "barangays.geojson"}
+        "meta.json", "forecast.json", "metrics.json", "index_resident.json", "index_daytime.json", "plans.json", "barangays.geojson"}
     meta = json.loads((out / "meta.json").read_text(encoding="utf-8"))
     assert meta["forecast_synthetic"] and meta["rain_synthetic"]
     plans = json.loads((out / "plans.json").read_text(encoding="utf-8"))

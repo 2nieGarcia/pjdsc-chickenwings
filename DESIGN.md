@@ -257,6 +257,7 @@ Freshness facts in the top bar.
 - **Internal Padding:** 16px sides. Content rhythm uses 12-16px.
 
 ### Inputs / Fields
+- **Backtest table:** one row per metric with a 'lower/higher is better' caption, one column per model, the event model's column tinted blue. The best value in a row gets a 2px ink outline; where a baseline beats the event model, its cell carries a red 'behind' caption. The sentence above the table is assembled from the scores, never typed.
 - **Text field:** paper fill, 1px line border, 3px radius, 13px text, 2px ink focus ring.
 - **Scenario control:** a segmented control of equal buttons with a 1px ink frame; each button holds a 12px label and a 15px condensed figure.
 - **Replay scrubber:** a 4px track with ink progress over the line colour. The thumb is a 14x22px ink block with a 2px ice border and a 2px radius. Tick dates sit below in 11px mute.

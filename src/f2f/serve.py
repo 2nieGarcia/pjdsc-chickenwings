@@ -97,6 +97,10 @@ class Handler(SimpleHTTPRequestHandler):
             result = decide(body, self.plans, self.run_dir)
         self.send_json(*result)
 
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-cache")  # a rebuild or re-export must show up on the next reload
+        super().end_headers()
+
     def log_message(self, fmt, *args):  # keep the demo terminal quiet except for decisions
         if self.command == "POST":
             super().log_message(fmt, *args)

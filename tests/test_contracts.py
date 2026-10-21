@@ -86,3 +86,13 @@ def test_boundaries_contract():
     feats[0]["geometry"] = {"type": "Point", "coordinates": [0, 0]}
     with pytest.raises(ValueError, match="Polygon"):
         check_boundaries({"type": "FeatureCollection", "features": feats})
+
+
+def test_metrics_contract():
+    ok = pd.DataFrame({"model": ["b0_zero", "event_glm"], "h": [2, 2], "split": ["test", "test"],
+                       "metric": ["mae", "mae"], "value": [0.49, float("nan")]})
+    check(ok, "metrics")
+    with pytest.raises(ValueError, match="metric not in"):
+        check(ok.assign(metric=["mae", "accuracy"]), "metrics")
+    with pytest.raises(ValueError, match="duplicate"):
+        check(ok.assign(model="b0_zero"), "metrics")

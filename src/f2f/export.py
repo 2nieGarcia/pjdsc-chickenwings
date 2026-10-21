@@ -48,6 +48,14 @@ def main(argv=None):
         fc = pd.read_parquet(run / "forecast.parquet")
     (OUT / "forecast.json").write_text(json.dumps(records(fc)), encoding="utf-8")
 
+    metrics_synthetic = not (run / "metrics.parquet").exists()
+    if metrics_synthetic:
+        with tempfile.TemporaryDirectory() as tmp:
+            mt = pd.read_parquet(fixtures.write(Path(tmp), cfg) / "metrics.parquet")
+    else:
+        mt = pd.read_parquet(run / "metrics.parquet")
+    (OUT / "metrics.json").write_text(json.dumps(records(mt)), encoding="utf-8")
+
     plans = {}
     for mode in ("resident", "daytime"):
         idx = pd.read_parquet(run / f"barangay_index_{mode}.parquet")
@@ -64,6 +72,7 @@ def main(argv=None):
     meta = {
         "run_id": run.name,
         "forecast_synthetic": forecast_synthetic,
+        "metrics_synthetic": metrics_synthetic,
         "rain_synthetic": True,
         "rain_weekly_mm": ILLUSTRATIVE_RAIN_MM,
         "cases_through": "2022-12-26",
