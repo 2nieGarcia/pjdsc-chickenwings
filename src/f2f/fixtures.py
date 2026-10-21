@@ -51,7 +51,7 @@ def write(out: Path, cfg: dict) -> Path:
         df["exposure_mode"] = mode
         check(df, "barangay_index").to_parquet(out / f"barangay_index_{mode}.parquet")
 
-    # 3 x 6 grid of squares, not real shapes; those come from `python -m f2f.ingest.static`
+    # 3 x 6 grid of squares, not real shapes; those come from `python -m f2f.ingest.fetch`
     feats = []
     for i, r in enumerate(brgy.itertuples()):
         x, y = 120.93 + (i % 3) * 0.006, 14.64 + (i // 3) * 0.006

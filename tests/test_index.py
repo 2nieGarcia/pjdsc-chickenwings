@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,7 +11,8 @@ def layers(**over):
     df = b[["psgc10", "name", "parent_psgc_cchain"]].assign(
         flood25_any=40.0, flood100_medhigh=30.0, gate_affected=0.0,
         pop_resident=b["pop_2024"].astype(float), pop_daytime=b["pop_2024"] * 0.93,
-        small_bldg_share=0.85, built_up_pct=45.0, pop_density=60000.0, km_to_care=0.8)
+        small_bldg_share=0.85, built_up_pct=45.0, pop_density=60000.0,
+        no_hc_15min=20.0, no_hosp_15min=10.0, m_to_primary=800.0)
     for col, vals in over.items():
         df[col] = vals
     return df
@@ -26,7 +25,7 @@ def cfg():
 
 def test_output_meets_contract(cfg):
     rng = np.random.default_rng(1)
-    ly = layers(flood25_any=rng.uniform(5, 70, 18), km_to_care=rng.uniform(0.2, 2, 18),
+    ly = layers(flood25_any=rng.uniform(5, 70, 18), m_to_primary=rng.uniform(0, 3000, 18), no_hc_15min=rng.uniform(0, 100, 18),
                 small_bldg_share=rng.uniform(0.5, 0.95, 18))
     for mode in ("resident", "daytime"):
         out = check(index.build_index(ly, cfg, mode), "barangay_index")
@@ -67,5 +66,3 @@ def test_geo_square():
     a, x, y = geo.area_centroid(sq)
     assert a == pytest.approx(1.1119 * 1.0757, rel=0.01)
     assert (x, y) == (pytest.approx(120.945), pytest.approx(14.655))
-    assert geo.haversine_km(120.94, 14.65, 120.94, 14.66) == pytest.approx(1.112, rel=0.01)
-    assert math.isclose(geo.haversine_km(1, 1, 1, 1), 0)

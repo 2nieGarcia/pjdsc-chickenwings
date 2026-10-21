@@ -31,7 +31,7 @@ No data yet? `python -m f2f.fixtures` writes a fake artifact folder so you can w
 Get the raw data into `data/raw/` (see [data/README.md](data/README.md)), then:
 
 ```bash
-python -m f2f.ingest.static                          # barangay layers, polygons, health facilities
+python -m f2f.ingest.fetch                           # CCHAIN tables from HDX + polygons, ~260 MB
 python -m f2f.run --config configs/carina_2024.yaml   # writes data/artifacts/<run_id>/
 streamlit run app/streamlit_app.py
 ```
@@ -64,4 +64,4 @@ Chicken Wings: Matthew John T. Bote, Charles John R. Cabatian, Antonio B. Garcia
 
 ## Data credits
 
-Project CCHAIN (Thinking Machines, CC BY 4.0), CHIRPS (UCSB CHC), PSA PSGC and 2024 POPCEN, UP NOAH (via CCHAIN), Google Open Buildings (via CCHAIN), DSWD DROMIC reports, barangay boundaries from faeldon/philippines-json-maps (MIT), health facilities © OpenStreetMap contributors (ODbL) via HOT/HDX.
+Project CCHAIN (Thinking Machines, CC BY 4.0), CHIRPS (UCSB CHC), PSA PSGC and 2024 POPCEN, UP NOAH, Google Open Buildings, Mapbox isochrones and the DOH health facility geoportal (all via CCHAIN), DSWD DROMIC reports, barangay boundaries from faeldon/philippines-json-maps (MIT).
