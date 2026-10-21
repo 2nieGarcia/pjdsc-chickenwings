@@ -48,7 +48,7 @@ src/f2f/        pipeline: ingest -> features -> forecast / index -> planner
 tests/
 ```
 
-Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/CONTRACTS.md](docs/CONTRACTS.md). If you change an artifact's shape, change `src/f2f/contracts.py` and `docs/CONTRACTS.md` in the same PR.
+Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/CONTRACTS.md](docs/CONTRACTS.md). Using an LLM? Paste [docs/MASTER_PROMPT.md](docs/MASTER_PROMPT.md) first. If you change an artifact's shape, change `src/f2f/contracts.py` and `docs/CONTRACTS.md` in the same PR.
 
 ## Data rules
 
