@@ -1,6 +1,6 @@
 # Outgoing data requests — Lane E
 
-Prepared: 21 October 2026 (Asia/Shanghai)
+Prepared: 21 October 2026 (Manila time)
 
 These are **drafts until signed and sent**. Before sending, replace every bracketed field, obtain the adviser's endorsement, and save the final signed PDF plus sent-email receipt in the team Drive folder.
 
@@ -19,7 +19,7 @@ The agencies' expected 15–20-working-day turnaround extends beyond the 14 Nove
 - Team point of contact and institutional mailing details.
 - Confirmed recipient email/address and correct office addressee.
 - Team Drive folder URL for final PDFs, delivery receipts, and any received files.
-- GitHub issue URL/number, to record the FOI findings and sent status.
+- Post the FOI findings and sent status on issue #19.
 
 ## Handling rules
 
