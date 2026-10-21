@@ -27,6 +27,10 @@ run = st.sidebar.selectbox("Run", runs[::-1], format_func=lambda p: p.name)
 mode = st.sidebar.radio("Exposure", ["resident", "daytime"])
 fc = pd.read_parquet(run / "forecast.parquet")
 idx = pd.read_parquet(run / f"barangay_index_{mode}.parquet")
+if mode == "daytime":
+    e = cfg["exposure"]
+    st.sidebar.caption(f"Scenario estimate: residents × {e['daytime_factor']} + {e['nfpc_scenario']:,} fish port "
+                       "workers on the NBBS barangays. Not a headcount.")
 
 # forecast
 issue = st.select_slider("Issue date", sorted(fc["issue_date"].unique()),
