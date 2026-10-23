@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from f2f import config, contracts, features, index, replay
-from f2f.forecast import event_model, backtest
+from f2f.forecast import backtest, event_model
 from f2f.ingest import cchain, events
 
 
@@ -64,9 +64,49 @@ def main(argv=None):
     # C7 before the forecast step: #6 must not wait on the event model (#7)
     write_metrics(panel, out, cfg)
 
+    # C2 forecast generation for Carina replay
     issues = replay.issue_dates(cfg)
-    fc = [event_model.predict(event_model.fit(panel, h, cfg), panel, issues, h) for h in cfg["horizons"]]
-    contracts.check(pd.concat(fc), "forecast").to_parquet(out / "forecast.parquet")
+    train_panel = panel[panel["week_start"].dt.year <= 2020]    
+
+    forecast_rows = []
+    for h in cfg["horizons"]:
+        model = event_model.EventGLM(h=h, cfg=cfg)
+        model.fit(train_panel)
+        
+        target_weeks = [issue + pd.Timedelta(weeks=h) for issue in issues]
+        eval_panel = panel[panel["week_start"].isin(target_weeks)].copy()
+        
+        if eval_panel.empty:
+            continue
+            
+        preds = model.predict(eval_panel)
+        
+        preds_df = eval_panel[["city_psgc", "week_start"]].copy()
+        preds_df[["p_elevated", "q05", "q50", "q95", "alert", "drivers", "model"]] = preds
+        
+        for i, issue_date in enumerate(issues):
+            target_week = target_weeks[i]
+            target_rows = preds_df[preds_df["week_start"] == target_week]
+            
+            for _, row in target_rows.iterrows():
+                forecast_rows.append({
+                    "issue_date": issue_date,
+                    "city_psgc": row["city_psgc"],
+                    "h": h,
+                    "target_week": target_week,
+                    "p_elevated": row["p_elevated"],
+                    "q05": row["q05"],
+                    "q50": row["q50"],
+                    "q95": row["q95"],
+                    "alert": row["alert"],
+                    "drivers": row["drivers"],
+                    "model": row["model"],
+                    "rain_through": issue_date,
+                    "cases_through": issue_date,
+                })
+
+    fc_df = pd.DataFrame(forecast_rows)
+    contracts.check(fc_df, "forecast").to_parquet(out / "forecast.parquet")
 
     print(f"artifacts -> {out}")
 
