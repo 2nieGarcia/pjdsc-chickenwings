@@ -23,6 +23,38 @@ def cfg():
     return config.load()
 
 
+def varied():
+    rng = np.random.default_rng(3)
+    return layers(flood25_any=rng.uniform(5, 70, 18), flood100_medhigh=rng.uniform(2, 60, 18),
+                  pop_resident=rng.uniform(8000, 60000, 18), pop_daytime=rng.uniform(9000, 70000, 18),
+                  small_bldg_share=rng.uniform(0.5, 0.95, 18), built_up_pct=rng.uniform(20, 90, 18),
+                  pop_density=rng.uniform(20000, 120000, 18), no_hc_15min=rng.uniform(0, 100, 18),
+                  no_hosp_15min=rng.uniform(0, 100, 18), m_to_primary=rng.uniform(100, 5000, 18))
+
+
+def test_bands_are_seeded_and_stay_in_range(cfg):
+    ly = varied()
+    a = index.build_index(ly, cfg, "resident")
+    b = index.build_index(ly, cfg, "resident")
+    assert a.equals(b)  # same seed, same bands every run
+    assert a["rank_p05"].between(1, 18).all()
+    assert a["rank_p95"].between(1, 18).all()
+    assert (a["rank_p05"] < a["rank_p95"]).any()  # the jitter actually moves ranks
+
+
+def test_sensitivity_covers_both_modes_and_aggregations(cfg):
+    ly = varied()
+    frames = {mode: index.build_index(ly, cfg, mode) for mode in ("resident", "daytime")}
+    table = index.sensitivity(frames, cfg)
+    assert len(table) == 4 * 18
+    assert set(table["aggregation"]) == set(index.AGGREGATIONS)
+    assert set(table["exposure_mode"]) == {"resident", "daytime"}
+    assert (table["mean_abs_shift"] >= 0).all()
+    geo = table[table["aggregation"] == "geometric"].set_index(["exposure_mode", "psgc10"])["median_rank"]
+    ari = table[table["aggregation"] == "arithmetic"].set_index(["exposure_mode", "psgc10"])["median_rank"]
+    assert not geo.equals(ari)  # geometric and arithmetic are not the same index
+
+
 def test_output_meets_contract(cfg):
     rng = np.random.default_rng(1)
     ly = layers(flood25_any=rng.uniform(5, 70, 18), m_to_primary=rng.uniform(0, 3000, 18), no_hc_15min=rng.uniform(0, 100, 18),
