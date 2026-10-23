@@ -58,8 +58,8 @@ One file per exposure mode, one row per barangay (18).
 | `exposed_n` | int | People counted as exposed under this mode; feeds the planner |
 | `score` | num | Geometric mean of hazard, exposure (mode), vulnerability, coping_gap |
 | `tier` | str | `act_now` (top 5), `prepare` (next 6), `monitor` |
-| `rank` | int | Under default weights |
-| `rank_p05`, `rank_p95` | int | Monte Carlo band |
+| `rank` | int | Equal weights, 0.25 per dimension |
+| `rank_p05`, `rank_p95` | int | 5th/95th percentile of the rank over `index.mc_draws` draws with weights jittered by ±`index.weight_jitter`, renormalised and seeded |
 | `exposure_mode` | str | `resident` or `daytime` |
 
 ## C6 `barangays.geojson`
