@@ -7,8 +7,8 @@ from f2f.forecast.baselines import B0Zero, B1Median, B2SeasonalNB
 
 WEEK = pd.Timedelta(weeks=1)
 HORIZONS = (1, 2, 3)
-DEFAULT_CUTOFF = 0.35  # interim until #7 freezes alerts.p_cutoff on 2019-20
-SPLITS = {"train": (2008, 2018), "tune": (2019, 2020), "test": (2021, 2022)}  # mirrors base.yaml split; move together
+DEFAULT_CUTOFF = 0.35
+SPLITS = {"train": (2008, 2018), "tune": (2019, 2020), "test": (2021, 2022)}
 
 
 def default_models() -> dict:
@@ -22,7 +22,6 @@ def default_models() -> dict:
 def _fit_window(panel: pd.DataFrame, split: str, h: int) -> pd.DataFrame:
     lo, hi = SPLITS[split]
     if split == "train":
-        # No data exists before 2008, so train rows are in-sample by necessity.
         return panel[panel["week_start"].dt.year <= hi]
     start = panel.loc[panel["week_start"].dt.year.between(lo, hi), "week_start"].min()
     return panel[panel["week_start"] <= start - h * WEEK]
@@ -88,13 +87,28 @@ def run_backtest(
             eval_df = city[in_split & city["cases"].notna()].copy()
             if eval_df.empty:
                 continue
-            pred_frame = eval_df[["city_psgc"]].assign(week_start=eval_df["week_start"])
-            for name, model in models.items():
-                preds = model.fit(train_df.copy()).predict(pred_frame)
-                eval_df["p"] = preds["p_elevated"].to_numpy(dtype=float)
-                eval_df["q50"] = preds["q50"].to_numpy(dtype=float)
-                for metric, value in _score(eval_df, h, cutoff).items():
-                    rows.append(
-                        {"model": name, "h": h, "split": split, "metric": metric, "value": value}
-                    )
+            
+            train_df = train_df.reset_index(drop=True)
+            eval_df = eval_df.reset_index(drop=True)
+            pred_input = pd.concat([train_df, eval_df], ignore_index=True)
+            
+            for name, model_or_factory in models.items():
+                print(f"DEBUG BACKTEST: Starting {name} for h={h}, split={split}")
+                try:
+                    model = model_or_factory(h) if callable(model_or_factory) else model_or_factory
+                    
+                    full_preds = model.fit(train_df.copy()).predict(pred_input)
+                    preds = full_preds.iloc[-len(eval_df):]
+                    
+                    eval_df["p"] = preds["p_elevated"].to_numpy(dtype=float)
+                    eval_df["q50"] = preds["q50"].to_numpy(dtype=float)
+                    
+                    for metric, value in _score(eval_df, h, cutoff).items():
+                        rows.append(
+                            {"model": name, "h": h, "split": split, "metric": metric, "value": value}
+                        )
+                    print(f"DEBUG BACKTEST: Finished {name} successfully")
+                except Exception as e:
+                    print(f"DEBUG BACKTEST: ERROR in {name}: {type(e).__name__}: {e}")
+                    
     return pd.DataFrame(rows, columns=["model", "h", "split", "metric", "value"])

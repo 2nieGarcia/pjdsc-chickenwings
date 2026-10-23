@@ -23,8 +23,8 @@ alerts:
   heavy_day_mm: 50
   watch_rain_lag2_mm: 160       # Matsushita 2018, "heavy" weekly category
   warning_rain_lag2_mm: 320
-  p_cutoff: null                # tuned on 2019-20 for F2, then frozen here
-
+  p_cutoff: 0.20  # Tuned on 2019-20 for F2 (h=1). Best F2: 0.5518
+  
 index:
   scale: [1, 10]                # never 0, geometric mean needs > 0
   winsor: [0.05, 0.95]

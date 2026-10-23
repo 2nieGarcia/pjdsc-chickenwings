@@ -21,7 +21,6 @@ class EventGLM:
         """Build leakage-safe feature matrix for horizon h."""
         df = df.copy()
         
-        # 1. Fourier seasonality (K=2) on target week
         week = df["week_start"].dt.isocalendar().week.astype(float)
         angle1 = 2 * np.pi * week / 52.1775
         angle2 = 4 * np.pi * week / 52.1775
@@ -30,10 +29,8 @@ class EventGLM:
         df["sin2"] = np.sin(angle2)
         df["cos2"] = np.cos(angle2)
 
-        # 2. City dummies (drop first to avoid perfect multicollinearity)
         city_dummies = pd.get_dummies(df["city_psgc"], prefix="city", drop_first=True, dtype=float)
         
-        # 3. Rain features (strictly k >= h)
         rain_cols = []
         if self.h <= 1:
             rain_cols.append("rain_cum6_lag1_mm")
@@ -42,7 +39,6 @@ class EventGLM:
         if self.h <= 3:
             rain_cols.append("rain_lag3_mm")
             
-        # 4. Shifted flags (to guarantee zero leakage from target week)
         df["heavy_days_safe"] = df.groupby("city_psgc")["heavy_days"].shift(self.h).fillna(0.0).astype(float)
         df["flood_event_safe"] = df.groupby("city_psgc")["flood_event"].shift(self.h).fillna(0.0).astype(float)
         df["gate_impaired_safe"] = df.groupby("city_psgc")["gate_impaired"].shift(self.h).fillna(0.0).astype(float)
@@ -53,8 +49,6 @@ class EventGLM:
         X = pd.concat([df[base_cols], city_dummies], axis=1).fillna(0.0).astype(float)
         
         if fit:
-            # Drop constant columns (e.g., gate_impaired is always False before 2024).
-            # A constant column is perfectly collinear with the intercept, causing Singular matrix.
             non_constant = X.columns[X.std() > 1e-8].tolist()
             X = X[non_constant]
             
@@ -62,10 +56,8 @@ class EventGLM:
             self._feature_means = X.mean()
             self._feature_stds = X.std().replace(0, 1)
         else:
-            # Align predict columns exactly to what was used in fit
             X = X.reindex(columns=self._feature_names, fill_value=0.0)
             
-        # Standardize features for stable GLM convergence
         X = (X - self._feature_means) / self._feature_stds
         
         return X
@@ -90,11 +82,10 @@ class EventGLM:
         X = self._make_features(df, fit=False)
         X_pred = sm.add_constant(X, has_constant="add").astype(float)
         
-        # 1. Probability
         p = self._model.predict(X_pred)
+        p = np.nan_to_num(p, nan=0.0)
         p = np.clip(p, 0.0, 1.0)
         
-        # 2. Alert rule
         alert = np.full(len(df), "none", dtype=object)
         
         if "rain_lag2_mm" in X.columns:
@@ -107,9 +98,9 @@ class EventGLM:
             alert = np.where(raw_flood > 0.5, "warning", alert)
             
         alert = np.where(p >= self._cutoff, "warning", alert)
+        alert = np.where(pd.isna(alert), "none", alert)
 
-        # 3. Drivers (top 3 feature contributions)
-        contribs = X * self._model.params[1:]  # exclude const
+        contribs = X * self._model.params[1:]
         top_indices = np.argsort(-np.abs(contribs.to_numpy()), axis=1)[:, :3]
         
         drivers_list = []
@@ -121,7 +112,6 @@ class EventGLM:
                 row_drivers.append({"feature": fname, "contrib": round(val, 4)})
             drivers_list.append(json.dumps(row_drivers))
 
-        # 4. Count quantiles
         q50 = np.where(p >= 0.5, 3.0, 0.0)
         q95 = np.where(p >= 0.5, 5.0, 0.0)
         q05 = np.zeros(len(df))

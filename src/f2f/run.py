@@ -12,6 +12,7 @@ import pandas as pd
 
 from f2f import config, contracts, features, index, replay
 from f2f.forecast import backtest, event_model
+from f2f.forecast.baselines import B0Zero, B1Median, B2SeasonalNB
 from f2f.ingest import cchain, events
 
 
@@ -23,12 +24,22 @@ def run_id() -> str:
     return f"{date.today():%Y%m%d}-{sha}"
 
 
+def get_backtest_models(cfg: dict) -> dict:
+    """Return baselines plus the event_glm factory for the harness."""
+    return {
+        "b0_zero": B0Zero(),
+        "b1_median": B1Median(),
+        "b2_seasonal_nb": B2SeasonalNB(),
+        "event_glm": lambda h: event_model.EventGLM(h=h, cfg=cfg),
+    }
+
 def write_metrics(panel: pd.DataFrame, out: Path, cfg: dict) -> pd.DataFrame:
-    """Score B0/B1/B2 on the pooled panel and write C7 into the run folder."""
+    """Score all models on the pooled panel and write C7 into the run folder."""
     cutoff = cfg["alerts"]["p_cutoff"] or backtest.DEFAULT_CUTOFF
     metrics = backtest.run_backtest(
         panel,
         cfg["city"]["psgc10"],
+        models=get_backtest_models(cfg),  # <--- THIS LINE MUST BE HERE
         horizons=tuple(cfg["horizons"]),
         cutoff=cutoff,
     )
@@ -47,7 +58,6 @@ def main(argv=None):
     out = Path(cfg["paths"]["artifacts"]) / run_id()
     out.mkdir(parents=True, exist_ok=True)
 
-    # static layers first: the index doesn't wait on case data or the forecast
     layers = index.load_layers(raw, cfg)
     for mode in ("resident", "daytime"):
         idx = contracts.check(index.build_index(layers, cfg, mode), "barangay_index")
@@ -55,18 +65,15 @@ def main(argv=None):
     fc = contracts.check_boundaries(index.boundaries(raw))
     (out / "barangays.geojson").write_text(json.dumps(fc), encoding="utf-8")
 
-    # CCHAIN rain stops at 2022; CHIRPS (#3) fills 2023-24 for the replay once ingest.rain is done
     flood_log = events.load_flood_log(raw) if (raw / "events" / "flood_log.csv").exists() else None
     panel = features.build_city_week(cchain.load_pidsr(raw), cchain.load_climate(raw), cchain.load_population(raw),
                                      cfg, flood_log)
     contracts.check(panel, "city_week").to_parquet(out / "city_week.parquet")
 
-    # C7 before the forecast step: #6 must not wait on the event model (#7)
     write_metrics(panel, out, cfg)
 
-    # C2 forecast generation for Carina replay
     issues = replay.issue_dates(cfg)
-    train_panel = panel[panel["week_start"].dt.year <= 2020]    
+    train_panel = panel[panel["week_start"].dt.year <= 2020].reset_index(drop=True)
 
     forecast_rows = []
     for h in cfg["horizons"]:
@@ -74,15 +81,17 @@ def main(argv=None):
         model.fit(train_panel)
         
         target_weeks = [issue + pd.Timedelta(weeks=h) for issue in issues]
-        eval_panel = panel[panel["week_start"].isin(target_weeks)].copy()
+        eval_panel = panel[panel["week_start"].isin(target_weeks)].copy().reset_index(drop=True)
         
         if eval_panel.empty:
             continue
             
-        preds = model.predict(eval_panel)
+        pred_input = pd.concat([train_panel, eval_panel], ignore_index=True)
+        full_preds = model.predict(pred_input)
+        preds = full_preds.iloc[-len(eval_panel):]
         
         preds_df = eval_panel[["city_psgc", "week_start"]].copy()
-        preds_df[["p_elevated", "q05", "q50", "q95", "alert", "drivers", "model"]] = preds
+        preds_df[["p_elevated", "q05", "q50", "q95", "alert", "drivers", "model"]] = preds.to_numpy()
         
         for i, issue_date in enumerate(issues):
             target_week = target_weeks[i]
