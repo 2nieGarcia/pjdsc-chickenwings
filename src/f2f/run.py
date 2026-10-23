@@ -72,32 +72,45 @@ def main(argv=None):
 
     write_metrics(panel, out, cfg)
 
+    # C2 forecast generation for Carina replay (True rolling replay)
+    # C2 forecast generation for Carina replay (True rolling replay)
     issues = replay.issue_dates(cfg)
-    train_panel = panel[panel["week_start"].dt.year <= 2020].reset_index(drop=True)
-
+    target_city = cfg["city"]["psgc10"]
+    
     forecast_rows = []
-    for h in cfg["horizons"]:
-        model = event_model.EventGLM(h=h, cfg=cfg)
-        model.fit(train_panel)
-        
-        target_weeks = [issue + pd.Timedelta(weeks=h) for issue in issues]
-        eval_panel = panel[panel["week_start"].isin(target_weeks)].copy().reset_index(drop=True)
-        
-        if eval_panel.empty:
-            continue
+    for issue_date in issues:
+        for h in cfg["horizons"]:
+            target_week = issue_date + pd.Timedelta(weeks=h)
             
-        pred_input = pd.concat([train_panel, eval_panel], ignore_index=True)
-        full_preds = model.predict(pred_input)
-        preds = full_preds.iloc[-len(eval_panel):]
-        
-        preds_df = eval_panel[["city_psgc", "week_start"]].copy()
-        preds_df[["p_elevated", "q05", "q50", "q95", "alert", "drivers", "model"]] = preds.to_numpy()
-        
-        for i, issue_date in enumerate(issues):
-            target_week = target_weeks[i]
-            target_rows = preds_df[preds_df["week_start"] == target_week]
+            # Train ONLY on data up to the issue date to prevent future leakage
+            train_panel = panel[panel["week_start"] <= issue_date].reset_index(drop=True)
+            if train_panel.empty:
+                continue
+                
+            model = event_model.EventGLM(h=h, cfg=cfg)
+            model.fit(train_panel)
             
-            for _, row in target_rows.iterrows():
+            # Evaluate only on the specific target week for this issue/horizon
+            eval_panel = panel[
+                (panel["week_start"] == target_week) & 
+                (panel["city_psgc"] == target_city)
+            ].copy().reset_index(drop=True)
+            
+            if eval_panel.empty:
+                continue
+                
+            # Concat to provide history for .shift(h) in feature engineering
+            pred_input = pd.concat([train_panel, eval_panel], ignore_index=True)
+            full_preds = model.predict(pred_input)
+            
+            # Slice back to eval rows and reset index
+            preds = full_preds.iloc[-len(eval_panel):].reset_index(drop=True)
+            
+            # Reconstruct the dataframe with city_psgc to satisfy C2 contract
+            preds_df = eval_panel[["city_psgc", "week_start"]].copy()
+            preds_df[["p_elevated", "q05", "q50", "q95", "alert", "drivers", "model"]] = preds.to_numpy()
+            
+            for _, row in preds_df.iterrows():
                 forecast_rows.append({
                     "issue_date": issue_date,
                     "city_psgc": row["city_psgc"],
@@ -116,7 +129,6 @@ def main(argv=None):
 
     fc_df = pd.DataFrame(forecast_rows)
     contracts.check(fc_df, "forecast").to_parquet(out / "forecast.parquet")
-
     print(f"artifacts -> {out}")
 
 
