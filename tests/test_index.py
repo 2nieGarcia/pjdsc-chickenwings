@@ -23,8 +23,8 @@ def cfg():
     return config.load()
 
 
-def varied():
-    rng = np.random.default_rng(3)
+def varied(seed=3):
+    rng = np.random.default_rng(seed)
     return layers(flood25_any=rng.uniform(5, 70, 18), flood100_medhigh=rng.uniform(2, 60, 18),
                   pop_resident=rng.uniform(8000, 60000, 18), pop_daytime=rng.uniform(9000, 70000, 18),
                   small_bldg_share=rng.uniform(0.5, 0.95, 18), built_up_pct=rng.uniform(20, 90, 18),
@@ -40,6 +40,11 @@ def test_bands_are_seeded_and_stay_in_range(cfg):
     assert a["rank_p05"].between(1, 18).all()
     assert a["rank_p95"].between(1, 18).all()
     assert (a["rank_p05"] < a["rank_p95"]).any()  # the jitter actually moves ranks
+
+
+def test_band_always_holds_the_rank(cfg):
+    a = index.build_index(varied(48), cfg, "resident")  # seed 48: rank 10 fell outside a raw band of 11-12
+    assert a["rank"].between(a["rank_p05"], a["rank_p95"]).all()
 
 
 def test_sensitivity_covers_both_modes_and_aggregations(cfg):
