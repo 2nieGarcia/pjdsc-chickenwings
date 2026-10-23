@@ -175,8 +175,9 @@ def build_index(layers: pd.DataFrame, cfg: dict, exposure_mode: str) -> pd.DataF
     out["score"] = (out["hazard"] * expo * out["vulnerability"] * out["coping_gap"]) ** 0.25
     out["rank"] = out["score"].rank(ascending=False, method="first").astype(int)
     band = bands(out, cfg, exposure_mode)
-    out["rank_p05"] = band["rank_p05"].to_numpy()
-    out["rank_p95"] = band["rank_p95"].to_numpy()
+    # the equal-weight rank can sit in the draws' 5% tail; keep it inside its own band
+    out["rank_p05"] = np.minimum(band["rank_p05"].to_numpy(), out["rank"])
+    out["rank_p95"] = np.maximum(band["rank_p95"].to_numpy(), out["rank"])
     out["tier"] = np.select([out["rank"] <= ic["act_now_top"], out["rank"] <= ic["act_now_top"] + ic["prepare_next"]],
                             ["act_now", "prepare"], "monitor")
     pop = layers["pop_daytime" if exposure_mode == "daytime" else "pop_resident"]

@@ -33,7 +33,7 @@ The PoC demo replays Typhoon Carina (July 2024). A slider moves through issue da
 - Split: train ≤ 2018, tune 2019-20, test 2021-22 once. Flag 2020-21 as COVID under-reporting years.
 - Rain lag structure from Manila literature (Matsushita 2018): the effect peaks at a 2-week lag. Alert rule: *watch* if rain 2 weeks back ≥ 160 mm/week; *warning* if ≥ 320 mm/week, or there is a flood in lags 1-2, or `p_elevated` ≥ a cutoff. The cutoff is tuned for F2 on 2019-20, then frozen.
 - **14 vs 18 barangays.** CCHAIN has the 14 pre-2018 units. Tangos split into North/South, Tanza into 1/2, and NBBS into Dagat-dagatan/Kaunlaran/Proper. Everything is keyed on 10-digit PSGC. Parent values are split by POPCEN 2024 share (total 252,878).
-- The Tangos-Tanza gate was damaged by a barge on 7 Jun 2024. It was closed again on 24 Aug 2024 but not fully working, and repairs ran to about Aug 2025, so the config window is 7 Jun 2024 to 31 Aug 2025. It affected Tanza 1/2, Tangos North/South and San Jose (no 2024 source names San Jose yet). Carina flooding there was tide-driven as much as rain-driven.
+- The Tangos-Tanza gate was damaged by a barge on 7 Jun 2024. It was closed again on 24 Aug 2024 but not fully working, and repairs ran to about Aug 2025, so the config window is 7 Jun 2024 to 31 Aug 2025. It affected Tanza 1/2, Tangos North/South and San Jose (no 2024 source names San Jose yet, #39). Carina flooding there was tide-driven as much as rain-driven.
 - Rain for 2023-24 comes from CHIRPS daily via Earth Engine, as an area-weighted mean over the city polygon. We train on CCHAIN rain and replay on CHIRPS, so their distributions are checked over 2015-2022.
 - The flood and gate log is hand-built from DSWD DROMIC reports, MMDA posts and news. Columns: `date, barangay, kind (flood|gate_down|gate_up), depth_code, affected, source_url`. Every row cites a source. This log is our edge.
 - Never sum PIDSR and FHSIS counts: PIDSR is already inside the FHSIS totals. LiPAD layers are internal only (their EULA forbids redistribution). OSM-derived layers are ODbL.
@@ -128,7 +128,7 @@ Critical path: **#1 → #5 → #7 → #8 → #18**.
 | 8 | Carina replay forecasts (C2) | P0 | #7, #5 |
 | 9 | PSGC 14→18 crosswalk + POPCEN (done) | P0 | none |
 | 10 | Barangay index and tiers (C3) (done) | P0 | #9; soft #4, #12 |
-| 11 | Monte Carlo rank bands | P1 | #10 |
+| 11 | Monte Carlo rank bands (done) | P1 | #10 |
 | 12 | Daytime exposure scenario (done) | P1 | #9 |
 | 13 | End-to-end run.py + `manifest.json` | P0 | real run needs #1, #3, #4, #5, #7, #8, #10 |
 | 14 | Barangay tier map (offline, colour-blind safe) (done) | P0 | #2, #9 for real data |
