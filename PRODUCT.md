@@ -50,7 +50,7 @@ Success in the demo is the Carina 2024 replay. As the issue date moves through J
 - **The tool never diagnoses, prescribes, decides eligibility, sends alerts or moves stock.** Every plan is a draft until an official approves or rejects it, and that decision is logged.
 - **Synthetic stock numbers must be labelled synthetic** wherever they appear. The daytime population is a labelled scenario estimate.
 - **Must run fully offline.**
-- **Undecided:** final forecast model output (#7, #8 still stubs); real 2023–24 rain (#3) and flood log (#4) not yet in.
+- **Undecided:** final forecast model output (#7, #8 still stubs); real 2023–24 rain (#3) not yet in.
 
 ## Brand Commitments
 
