@@ -7,7 +7,7 @@
 "Carina, two weeks early." Drag the issue-date slider from 1 Jul to 15 Aug 2024:
 
 1. Weekly rain bars climb into the 22-26 Jul event.
-2. The gate-impaired flag is already on for Tanza 1/2, Tangos North/South and San Jose; it has been since June.
+2. The gate-impaired flag is already on for Tanza 1/2, Tangos North/South and San Jose; it has been since 7 June. (No 2024 source names San Jose yet: source it or drop it from this line, #39.)
 3. P(elevated week) crosses the alarm line around the event, before the August hospital-surge headlines.
 4. The barangay map reshuffles tiers. Rank bands show which positions are solid and which are a coin flip.
 5. Flip exposure from resident to daytime. Fish port workers land on the NBBS barangays and capsule need jumps roughly tenfold.

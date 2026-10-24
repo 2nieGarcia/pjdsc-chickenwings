@@ -17,15 +17,23 @@ Indicators, all "higher = worse":
 Each indicator: log1p where skewed, winsorised, min-max to [1, 10]. A constant indicator carries no
 information and is dropped. Dimensions are the mean of their indicators; score is the geometric
 mean of hazard, exposure (by mode), vulnerability and coping_gap, so a barangay that doesn't flood
-can't rank high on crowding alone. Rank bands (#11) are left equal to the rank for now.
+can't rank high on crowding alone.
+
+Rank bands (#11): the four equal weights are jittered by +-index.weight_jitter and renormalised,
+index.mc_draws times. Each draw ranks all 18 barangays; rank_p05/p95 are the 5th/95th percentiles
+of those ranks. Seeded, so the same components always give the same band.
 """
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from f2f import barangays, exposure, geo
+from f2f import barangays, config, exposure, geo
+
+SEED = 0
+AGGREGATIONS = ("geometric", "arithmetic")
 
 DIMENSIONS = {
     "hazard": ["flood25_any", "flood100_medhigh", "gate_affected"],
@@ -104,6 +112,56 @@ def scale(s: pd.Series, winsor=(0.05, 0.95), log: bool = False, lo: float = 1, h
     return lo + (hi - lo) * (s - s.min()) / span if span > 0 else pd.Series(np.nan, index=s.index)
 
 
+def _exposure(exposure_mode: str) -> str:
+    return "exposure_day" if exposure_mode == "daytime" else "exposure_res"
+
+
+def _score(dims: np.ndarray, weights: np.ndarray, how: str) -> np.ndarray:
+    """(draws, 4) weights x (18, 4) components -> (draws, 18) scores."""
+    if how == "geometric":
+        return np.exp(weights @ np.log(dims).T)
+    if how == "arithmetic":
+        return weights @ dims.T
+    raise ValueError(f"aggregation must be one of {AGGREGATIONS}")
+
+
+def _rank(scores: np.ndarray) -> np.ndarray:
+    """1 is the highest score. Stable, so equal scores keep row order."""
+    return (-scores).argsort(axis=1, kind="stable").argsort(axis=1) + 1
+
+
+def bands(frame: pd.DataFrame, cfg: dict, exposure_mode: str, how: str = "geometric") -> pd.DataFrame:
+    """Median rank, 90% band and mean absolute rank shift under jittered equal weights.
+
+    `frame` is C3-shaped: the four dimension columns plus psgc10 and name. The shift is against
+    the equal-weight rank of the same rows, so it says how far a draw usually moves a barangay.
+    """
+    dims = frame[["hazard", _exposure(exposure_mode), "vulnerability", "coping_gap"]].to_numpy(float)
+    ic = cfg["index"]
+    rng = np.random.default_rng(SEED)
+    w = 1 + rng.uniform(-ic["weight_jitter"], ic["weight_jitter"], size=(ic["mc_draws"], dims.shape[1]))
+    w /= w.sum(axis=1, keepdims=True)
+    ranks = _rank(_score(dims, w, how))
+    base = _rank(_score(dims, np.full((1, dims.shape[1]), 0.25), how))[0]
+    return pd.DataFrame({
+        "psgc10": frame["psgc10"].to_numpy(),
+        "name": frame["name"].to_numpy(),
+        "median_rank": np.median(ranks, axis=0),
+        "rank_p05": np.quantile(ranks, 0.05, axis=0, method="lower").astype(int),
+        "rank_p95": np.quantile(ranks, 0.95, axis=0, method="higher").astype(int),
+        "mean_abs_shift": np.abs(ranks - base).mean(axis=0).round(2),
+    })
+
+
+def sensitivity(frames: dict[str, pd.DataFrame], cfg: dict) -> pd.DataFrame:
+    """One long table: per exposure mode and aggregation, the bands and shift for all 18 barangays."""
+    rows = [bands(f, cfg, mode, how).assign(exposure_mode=mode, aggregation=how)
+            for mode, f in frames.items() for how in AGGREGATIONS]
+    cols = ["exposure_mode", "aggregation", "psgc10", "name", "median_rank", "rank_p05", "rank_p95",
+            "mean_abs_shift"]
+    return pd.concat(rows, ignore_index=True)[cols]
+
+
 def build_index(layers: pd.DataFrame, cfg: dict, exposure_mode: str) -> pd.DataFrame:
     if exposure_mode not in ("resident", "daytime"):
         raise ValueError("exposure_mode must be resident or daytime")
@@ -113,14 +171,31 @@ def build_index(layers: pd.DataFrame, cfg: dict, exposure_mode: str) -> pd.DataF
         scaled = pd.concat([scale(layers[c], tuple(ic["winsor"]), c in LOG) for c in cols], axis=1)
         out[dim] = scaled.mean(axis=1).fillna(1.0)  # every indicator constant -> no signal, floor it
 
-    expo = out["exposure_day" if exposure_mode == "daytime" else "exposure_res"]
+    expo = out[_exposure(exposure_mode)]
     out["score"] = (out["hazard"] * expo * out["vulnerability"] * out["coping_gap"]) ** 0.25
     out["rank"] = out["score"].rank(ascending=False, method="first").astype(int)
-    out["rank_p05"] = out["rank"]
-    out["rank_p95"] = out["rank"]
+    band = bands(out, cfg, exposure_mode)
+    # the equal-weight rank can sit in the draws' 5% tail; keep it inside its own band
+    out["rank_p05"] = np.minimum(band["rank_p05"].to_numpy(), out["rank"])
+    out["rank_p95"] = np.maximum(band["rank_p95"].to_numpy(), out["rank"])
     out["tier"] = np.select([out["rank"] <= ic["act_now_top"], out["rank"] <= ic["act_now_top"] + ic["prepare_next"]],
                             ["act_now", "prepare"], "monitor")
     pop = layers["pop_daytime" if exposure_mode == "daytime" else "pop_resident"]
     out["exposed_n"] = (pop * layers["flood25_any"] / 100).round().astype(int)
     out["exposure_mode"] = exposure_mode
     return out.sort_values("rank").reset_index(drop=True)
+
+
+def main(run: Path) -> pd.DataFrame:
+    """Print the sensitivity table for one artifact folder (both exposure modes)."""
+    frames = {mode: pd.read_parquet(Path(run) / f"barangay_index_{mode}.parquet")
+              for mode in ("resident", "daytime")}
+    table = sensitivity(frames, config.load())
+    print(table.to_string(index=False))
+    return table
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        raise SystemExit("usage: python -m f2f.index <run_dir>, e.g. data/artifacts/00000000-fixture")
+    main(Path(sys.argv[1]))

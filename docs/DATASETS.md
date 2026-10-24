@@ -12,13 +12,13 @@
 | Population | PSA 2024 POPCEN | Barangay (18) | 1 Jul 2024 | Public |
 | Codes | PSA PSGC | Barangay | 2023 codes, unchanged since | Public |
 | Polygons | faeldon/philippines-json-maps 2023 (PSA/NAMRIA boundaries) | Barangay (18) | 2023 | MIT |
-| Flood + gate log | DROMIC, MMDA, news (hand-built) | Barangay, per event | 2024 first, back to 2015 later | Public documents, cite each row |
+| Flood + gate log | DROMIC, MMDA, news (hand-built) | Barangay, per event | 1 Jun-31 Aug 2024 (#4); 2015-2023 in Sprint 2 | Public documents, cite each row |
 
 ## Why this set
 
 - Everything is open and downloadable in a day. Nothing on the Sprint 1 path waits on a request letter.
 - CCHAIN is already keyed by PSGC and Monday weeks, so joins are cheap.
-- The flood and gate log is the part other teams won't have, and it's what makes the 2024 replay credible: the Tanza/Tangos gate was down from June 2024, so Carina flooding there was tide-driven as much as rain-driven.
+- The flood and gate log is the part other teams won't have, and it's what makes the 2024 replay credible: the Tangos-Tanza gate was damaged on 7 Jun 2024 and wasn't closed again until 24 Aug, so Carina flooding there was tide-driven as much as rain-driven.
 
 ## What the labels can and can't do
 
