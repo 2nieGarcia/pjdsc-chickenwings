@@ -29,13 +29,10 @@ def _fit_window(panel: pd.DataFrame, split: str, h: int) -> pd.DataFrame:
 
 
 def _episodes(df: pd.DataFrame) -> list:
-    d = df.sort_values("week_start")
-    elev = d["elevated"].astype(bool).to_numpy()
-    block = (d["week_start"].diff() > WEEK).cumsum()
-    out = []
-    for _, g in d[elev].groupby(block[elev]):
-        out.append((g["week_start"].min(), g["week_start"].max()))
-    return out
+    """Runs of consecutive elevated weeks; a quiet week or a gap in the weeks ends a run."""
+    d = df[df["elevated"].astype(bool)].sort_values("week_start")
+    block = (d["week_start"].diff() != WEEK).cumsum()
+    return [(g["week_start"].min(), g["week_start"].max()) for _, g in d.groupby(block)]
 
 
 def _score(eval_df: pd.DataFrame, h: int, cutoff: float) -> dict:
@@ -77,7 +74,11 @@ def run_backtest(
     cutoff: float = DEFAULT_CUTOFF,
     horizons: tuple = HORIZONS,
 ) -> pd.DataFrame:
-    """Fit each model per (split, h) on the pooled panel, score on city_psgc."""
+    """Fit each model per (split, h) on the pooled panel, score on city_psgc.
+
+    A model is a fit/predict object, or a callable h -> object for models that depend on the
+    horizon. predict() gets the full C1 rows of the weeks it scores, so lagged features are there.
+    """
     models = default_models() if models is None else models
     city = panel[panel["city_psgc"] == city_psgc]
     rows = []
@@ -88,9 +89,9 @@ def run_backtest(
             eval_df = city[in_split & city["cases"].notna()].copy()
             if eval_df.empty:
                 continue
-            pred_frame = eval_df[["city_psgc"]].assign(week_start=eval_df["week_start"])
             for name, model in models.items():
-                preds = model.fit(train_df.copy()).predict(pred_frame)
+                model = model(h) if callable(model) else model
+                preds = model.fit(train_df.copy()).predict(eval_df.drop(columns=["p", "q50"], errors="ignore"))
                 eval_df["p"] = preds["p_elevated"].to_numpy(dtype=float)
                 eval_df["q50"] = preds["q50"].to_numpy(dtype=float)
                 for metric, value in _score(eval_df, h, cutoff).items():

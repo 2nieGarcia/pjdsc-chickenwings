@@ -144,6 +144,7 @@ def test_b2_seasonal_nb_fits_and_predicts() -> None:
     test = df.iloc[52*2:]
     
     model = B2SeasonalNB().fit(train)
+    assert model._fallback_model is None  # the NB fit itself must work, not the B1 fallback
     preds = model.predict(test)
     
     assert list(preds.columns) == PRED_COLS

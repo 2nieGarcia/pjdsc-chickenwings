@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from f2f import contracts
-from f2f.forecast.backtest import run_backtest
+from f2f.forecast.backtest import _episodes, run_backtest
 
 NAVOTAS = "1380900000"
 OTHER = "1376000000"
@@ -95,3 +95,29 @@ def test_harness_accepts_any_fit_predict_pair() -> None:
     test = out[(out["split"] == "test") & (out["h"] == 1)]
     assert test.loc[test["metric"] == "episode_recall", "value"].iloc[0] == 1.0
     assert test.loc[test["metric"] == "lead_time_wk", "value"].iloc[0] == 1.0
+
+def test_quiet_weeks_split_episodes() -> None:
+    weeks = pd.date_range("2021-01-04", periods=20, freq="W-MON")
+    elevated = np.zeros(20, bool)
+    elevated[[3, 4, 12, 17, 18]] = True
+    eps = _episodes(pd.DataFrame({"week_start": weeks, "elevated": elevated}))
+    assert [(s.strftime("%m-%d"), e.strftime("%m-%d")) for s, e in eps] == [
+        ("01-25", "02-01"), ("03-29", "03-29"), ("05-03", "05-10")]
+
+
+class _Spy(_AlwaysWarn):
+    seen = []
+
+    def __init__(self, h):
+        self.h = h
+
+    def predict(self, df):
+        self.seen.append((self.h, "rain_lag1_mm" in df.columns))
+        return super().predict(df)
+
+
+def test_models_get_h_and_feature_rows() -> None:
+    panel = _panel().assign(rain_lag1_mm=10.0)
+    run_backtest(panel, NAVOTAS, models={"spy": _Spy}, horizons=(1, 3))
+    assert {h for h, _ in _Spy.seen} == {1, 3}
+    assert all(has_rain for _, has_rain in _Spy.seen)
