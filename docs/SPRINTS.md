@@ -8,9 +8,9 @@
 
 1. Weekly rain bars climb into the 22-26 Jul event.
 2. The gate-impaired flag is already on for Tanza 1/2 and Tangos North/South; it has been since 7 June.
-3. P(elevated week) crosses the alarm line around the event, before the August hospital-surge headlines.
+3. P(elevated week) rises around the event: on 29 Jul all three weeks go to watch (13-17%, 211 mm of rain the week before). Warning needs the flood log (see docs/DEMO.md).
 4. The barangay map reshuffles tiers. Rank bands show which positions are solid and which are a coin flip.
-5. Flip exposure from resident to daytime. Fish port workers land on the NBBS barangays and capsule need jumps roughly tenfold.
+5. Flip exposure from resident to daytime. Fish port workers land on the NBBS barangays: exposure there goes from about 41k to 55k and capsule need rises about a fifth (294k to 350k at 50% uptake).
 6. Stock panel: need vs usable stock (labelled synthetic), what's unmet, where. The duty officer types a name and approves. It goes in the audit log. Nothing is dispatched.
 
 Close on the backtest card: on MAE, "predict zero" wins; on episode recall and lead time, it never warns anyone. That's why the output is a probability.

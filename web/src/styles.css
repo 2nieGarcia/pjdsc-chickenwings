@@ -149,7 +149,7 @@ select { font-size: 12px; padding: 4px 8px; border: 1px solid var(--line); borde
 .wk .watch { color: #9a5a0a; }
 .wk .wl { color: var(--mute); }
 .tag { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #fff; padding: 1px 5px; border-radius: 2px; background: var(--red); }
-.tag.watch { background: #9a5a0a; }
+.tag.watch { background: #9a5a0a; color: #fff; }  /* .wk .watch colours the card text the same brown */
 .hist { display: flex; align-items: flex-end; gap: 3px; height: 22px; }
 .hist i { width: 7px; background: #a9b3c6; }
 .hist i:last-child { background: currentColor; }
