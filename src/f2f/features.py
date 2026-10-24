@@ -1,6 +1,7 @@
 """Builds the city_week panel (contract C1).
 
-Leakage rule: a feature lagged k weeks behind the target week may feed horizon h only if k >= h.
+Leakage rule: a weekly feature lagged k weeks behind the target week may feed horizon h only if k >= h + 1;
+lag h is the week that starts on the issue Monday (target = issue_date + h).
 Case lags also need the reporting delay added to h.
 """
 import pandas as pd
@@ -11,7 +12,7 @@ RAIN_LAGS = range(1, 7)
 def build_city_week(pidsr: pd.DataFrame, rain: pd.DataFrame, pop: pd.DataFrame, cfg: dict,
                     flood_log: pd.DataFrame | None = None) -> pd.DataFrame:
     """pidsr: city_psgc, week_start, cases. rain: city_psgc, date, rain_mm (daily). pop: city_psgc, year, pop.
-    flood_log: f2f.ingest.events format, Navotas only; None until #4 lands (flood_event stays False).
+    flood_log: f2f.ingest.events format, Navotas only; None when the log file is missing (flood_event stays False).
 
     Weeks run Monday-Sunday. Every city gets every Monday from the first PIDSR week through the
     end of the replay window plus the longest horizon; cases are <NA> after 2022, rain is <NA>

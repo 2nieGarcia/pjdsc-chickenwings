@@ -71,6 +71,11 @@ def write(out: Path, cfg: dict) -> Path:
                       "properties": {"psgc10": r.psgc10, "name": r.name}})
     fc = check_boundaries({"type": "FeatureCollection", "features": feats})
     (out / "barangays.geojson").write_text(json.dumps(fc), encoding="utf-8")
+
+    manifest = {"run_id": out.name, "config": "fixture", "git_sha": "fixture", "created": "2026-01-01T00:00:00+00:00",
+                "cases_through": "2022-12-26", "rain_through": f"{issues[-1] - pd.Timedelta(days=1):%Y-%m-%d}",
+                "rain_sources": ["fixture"], "flood_log": False, "sources": []}
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return out
 
 

@@ -1,114 +1,92 @@
 """Tests for the pooled event model (Issue #7)."""
 import json
 import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
 
+from f2f import config
 from f2f.forecast.event_model import EventGLM
 
 NAVOTAS = "1380900000"
 OTHER = "1376000000"
 
 
-def _make_cfg() -> dict:
-    return {
-        "alerts": {"p_cutoff": 0.35},
-        "city": {"psgc10": NAVOTAS},
-    }
+@pytest.fixture(autouse=True)
+def quiet():
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        yield
 
 
-def _make_synthetic_panel(n_weeks: int = 400) -> pd.DataFrame:
-    """Generate a synthetic C1-shaped panel with the features EventGLM needs."""
+def _cfg() -> dict:
+    return config.load()
+
+
+def _panel(n_weeks: int = 400) -> pd.DataFrame:
+    """C1-shaped panel where elevated weeks follow rain two weeks earlier."""
     dates = pd.date_range("2015-01-05", periods=n_weeks, freq="7D")
-    cities = [NAVOTAS, OTHER]
-    
-    np.random.seed(42)
+    rng = np.random.default_rng(42)
     frames = []
-    for city in cities:
-        rain_lag1 = np.random.exponential(50, n_weeks)
-        rain_lag2 = np.random.exponential(50, n_weeks)
-        rain_lag3 = np.random.exponential(50, n_weeks)
-        
-        cases = np.random.poisson(0.5, n_weeks)
-        elevated = cases >= 3
-        
+    for city in (NAVOTAS, OTHER):
+        rain = rng.exponential(60, n_weeks + 6)
+        lags = {f"rain_lag{k}_mm": rain[6 - k:6 - k + n_weeks] for k in range(1, 7)}
+        cases = rng.poisson(0.3 + lags["rain_lag2_mm"] / 60)
         frames.append(pd.DataFrame({
-            "city_psgc": city,
-            "week_start": dates,
-            "cases": pd.array(cases, dtype="Int64"),
-            "elevated": pd.array(elevated, dtype="boolean"),
-            "rain_cum6_lag1_mm": rain_lag1,
-            "rain_lag2_mm": rain_lag2,
-            "rain_lag3_mm": rain_lag3,
-            "heavy_days": np.random.randint(0, 3, n_weeks),
-            "flood_event": np.random.choice([True, False], n_weeks, p=[0.1, 0.9]),
-            "gate_impaired": np.random.choice([True, False], n_weeks, p=[0.05, 0.95]),
+            "city_psgc": city, "week_start": dates,
+            "cases": pd.array(cases, dtype="Int64"), "elevated": pd.array(cases >= 3, dtype="boolean"),
+            "rain_wk_mm": rain[6:], **lags, "flood_event": False, "gate_impaired": False,
         }))
-        
     return pd.concat(frames, ignore_index=True)
 
 
-def test_event_glm_fit_and_predict_shape() -> None:
-    panel = _make_synthetic_panel()
-    train = panel[panel["week_start"].dt.year <= 2018]
-    test = panel[panel["week_start"].dt.year == 2019]
-    
-    model = EventGLM(h=1, cfg=_make_cfg())
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        model.fit(train)
-    preds = model.predict(test)
-    
-    expected_cols = {"p_elevated", "q05", "q50", "q95", "alert", "drivers", "model"}
-    assert expected_cols.issubset(set(preds.columns))
-    assert len(preds) == len(test)
-    assert (preds["model"] == "event_glm").all()
+def _split(panel):
+    return panel[panel["week_start"].dt.year <= 2018], panel[panel["week_start"].dt.year == 2019].copy()
 
 
-def test_event_glm_drivers_are_valid_json() -> None:
-    panel = _make_synthetic_panel()
-    train = panel[panel["week_start"].dt.year <= 2018]
-    test = panel[panel["week_start"].dt.year == 2019]
-    
-    model = EventGLM(h=1, cfg=_make_cfg())
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        model.fit(train)
-    preds = model.predict(test)
-    
-    drivers = json.loads(preds["drivers"].iloc[0])
-    assert isinstance(drivers, list)
-    assert len(drivers) == 3
-    assert "feature" in drivers[0]
-    assert "contrib" in drivers[0]
+def test_fit_and_predict_shape() -> None:
+    train, test = _split(_panel())
+    preds = EventGLM(h=1, cfg=_cfg()).fit(train).predict(test)
+    assert list(preds.columns) == ["p_elevated", "q05", "q50", "q95", "alert", "drivers", "model"]
+    assert len(preds) == len(test) and (preds["model"] == "event_glm").all()
+    assert preds["p_elevated"].between(0, 1).all()
+    assert ((preds["q05"] <= preds["q50"]) & (preds["q50"] <= preds["q95"])).all()
 
 
-def test_event_glm_no_leakage_h3() -> None:
-    """Shuffling future rain (lag1, lag2) must not change h=3 predictions.
-    
-    This is the mandatory leakage test from Issue #7.
-    For h=3, lag1 (k=1) and lag2 (k=2) are strictly forbidden (k < h).
-    """
-    panel = _make_synthetic_panel()
-    train = panel[panel["week_start"].dt.year <= 2018]
-    test = panel[panel["week_start"].dt.year == 2019].copy()
-    
-    model = EventGLM(h=3, cfg=_make_cfg())
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        model.fit(train)
-    
-    preds_original = model.predict(test)
-    
-    test_shuffled = test.copy()
-    test_shuffled["rain_cum6_lag1_mm"] = np.random.permutation(test_shuffled["rain_cum6_lag1_mm"])
-    test_shuffled["rain_lag2_mm"] = np.random.permutation(test_shuffled["rain_lag2_mm"])
-    
-    preds_shuffled = model.predict(test_shuffled)
-    
-    pd.testing.assert_series_equal(
-        preds_original["p_elevated"], 
-        preds_shuffled["p_elevated"],
-        check_names=False
-    )
+def test_drivers_name_rain_and_season_only() -> None:
+    train, test = _split(_panel())
+    drivers = json.loads(EventGLM(h=1, cfg=_cfg()).fit(train).predict(test)["drivers"].iloc[0])
+    assert {d["feature"] for d in drivers} == {"rain_lag2_mm", "rain_lag3_mm", "season"}
+
+
+@pytest.mark.parametrize("h", [1, 2, 3])
+def test_rain_from_the_issue_week_or_later_is_not_used(h) -> None:
+    """Target = issue + h. rain_lag{k} for k <= h covers days on or after the issue Monday."""
+    train, test = _split(_panel())
+    model = EventGLM(h=h, cfg=_cfg()).fit(train)
+    shuffled = test.copy()
+    for k in range(1, h + 1):
+        shuffled[f"rain_lag{k}_mm"] = np.random.default_rng(k).permutation(shuffled[f"rain_lag{k}_mm"].to_numpy())
+    pd.testing.assert_frame_equal(model.predict(test), model.predict(shuffled))
+
+
+def test_a_flood_in_the_two_weeks_before_issue_warns() -> None:
+    panel = _panel()
+    train, _ = _split(panel)
+    model = EventGLM(h=1, cfg=_cfg()).fit(train)
+    nav = panel[panel["city_psgc"] == NAVOTAS].copy()
+    for col in [c for c in nav if c.startswith("rain_")]:
+        nav[col] = 0.0  # no rain: only the flood can raise the alert
+    issue = pd.Timestamp("2019-07-01")
+    nav.loc[nav["week_start"] == issue - pd.Timedelta(weeks=2), "flood_event"] = True
+    alerts = model.predict(nav).set_index(nav["week_start"])["alert"]
+    assert alerts[issue + pd.Timedelta(weeks=1)] == "warning"  # flood is lag 2 from the issue date
+    assert alerts[issue + pd.Timedelta(weeks=3)] == "none"     # lag 4 from its issue date: too old
+
+
+def test_missing_rain_fails_loudly() -> None:
+    train, test = _split(_panel())
+    model = EventGLM(h=1, cfg=_cfg()).fit(train)
+    with pytest.raises(ValueError, match="#3"):
+        model.predict(test.assign(rain_lag2_mm=np.nan))

@@ -119,6 +119,7 @@ class B2SeasonalNB:
         self._params = None
         self._alpha = None
         self._fallback_model = None
+        self._cities = []
 
     def _make_features(self, df: pd.DataFrame) -> pd.DataFrame:
         week_of_year = df["week_start"].dt.isocalendar().week.astype(float)
@@ -128,6 +129,9 @@ class B2SeasonalNB:
             "sin_week": np.sin(angle),
             "cos_week": np.cos(angle),
         }, index=df.index)
+        # one level per city after the first: the pooled panel mixes cities of very different size
+        for c in self._cities[1:]:
+            X[f"city_{c}"] = (df["city_psgc"] == c).astype(float)
         return X
 
     def fit(self, df: pd.DataFrame) -> "B2SeasonalNB":
@@ -142,16 +146,20 @@ class B2SeasonalNB:
             return self
 
         y = df["cases"].astype(float).values
+        self._cities = sorted(df["city_psgc"].unique())
         X = self._make_features(df)
 
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                model = sm.NegativeBinomial(y, X)
-                # Nelder-Mead is more robust for NB dispersion parameters
-                res = model.fit(disp=0, maxiter=300, method="nm")
+                # Poisson IRLS for the means, moment estimate for the NB2 dispersion, then NB IRLS.
+                # Full NB maximum likelihood diverged once the city levels added a dozen parameters.
+                mu = sm.GLM(y, X, family=sm.families.Poisson()).fit().fittedvalues
+                self._alpha = float(np.clip(np.mean(((y - mu) ** 2 - y) / mu ** 2), 1e-3, 50))
+                res = sm.GLM(y, X, family=sm.families.NegativeBinomial(alpha=self._alpha)).fit()
+                if not np.isfinite(res.params).all():
+                    raise ValueError("NB fit diverged")
                 self._params = res.params
-                self._alpha = res.alpha
         except Exception:
             # Fallback to B1 if NB fails to converge
             self._fallback_model = B1Median().fit(df)

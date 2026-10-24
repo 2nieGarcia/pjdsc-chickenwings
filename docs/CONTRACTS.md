@@ -19,7 +19,7 @@ One row per city per week. Pooled panel, all 12 CCHAIN cities, every Monday from
 | `rain_lag1_mm` … `rain_lag6_mm` | num | `rain_wk_mm` k weeks earlier |
 | `rain_cum6_lag1_mm` | num | Sum of lags 1-6 |
 | `heavy_days` | int | Days ≥ `alerts.heavy_day_mm` that week. Null where `rain_wk_mm` is null |
-| `flood_event` | bool | Any `kind=flood` row in the flood log that week (Navotas only). All False until #4's log exists |
+| `flood_event` | bool | Any `kind=flood` row in the flood log that week (Navotas only). All False when `data/raw/events/flood_log.csv` is missing |
 | `gate_impaired` | bool | Navotas only; any day of the week inside the config's `gate_impaired` window |
 | `source` | str | `cchain` for now; `chirps` rows arrive with #3 |
 
@@ -43,7 +43,7 @@ One row per issue date per horizon.
 | `rain_through` | date | Last rain day used. ≤ `issue_date` |
 | `cases_through` | date | Last case week used. ≤ `issue_date` |
 
-Alert rule: `watch` if `rain_lag2_mm ≥ 160`; `warning` if `≥ 320` or a flood in lags 1-2 or `p_elevated ≥ alerts.p_cutoff`. The cutoff is tuned on 2019-20 for F2 and frozen in config.
+Alert rule, on what is known at `issue_date`: `watch` if the last complete rain week before the issue date (`rain_lag{h+1}_mm` of the target week; `rain_lag2_mm` at h = 1) is ≥ 160 mm; `warning` if it is ≥ 320 mm, or a flood is logged in either of the two weeks before the issue date, or `p_elevated ≥ alerts.p_cutoff`. The cutoff is tuned on 2019-20 for F2 (`python -m f2f.forecast.event_model`) and frozen in config.
 
 ## C3 `barangay_index_<mode>.parquet`
 
@@ -58,8 +58,8 @@ One file per exposure mode, one row per barangay (18).
 | `exposed_n` | int | People counted as exposed under this mode; feeds the planner |
 | `score` | num | Geometric mean of hazard, exposure (mode), vulnerability, coping_gap |
 | `tier` | str | `act_now` (top 5), `prepare` (next 6), `monitor` |
-| `rank` | int | Under default weights |
-| `rank_p05`, `rank_p95` | int | Monte Carlo band |
+| `rank` | int | Equal weights, 0.25 per dimension |
+| `rank_p05`, `rank_p95` | int | 5th/95th percentile of the rank over `index.mc_draws` draws with weights jittered by ±`index.weight_jitter`, renormalised and seeded. Widened if needed so the band always holds `rank` |
 | `exposure_mode` | str | `resident` or `daytime` |
 
 ## C6 `barangays.geojson`
@@ -86,6 +86,22 @@ Backtest scores, written by the baseline harness (#6). The dashboard's Backtest 
 | `value` | num | NaN where a metric does not apply (B0 has no lead time) |
 
 Invariants: `(model, h, split, metric)` unique; `brier`, `auc` and `episode_recall` in [0, 1] (write 0.64, not 64). Until #6 writes it, `python -m f2f.export` falls back to the fixture scores and flags them `metrics_synthetic`.
+
+## C8 `manifest.json`
+
+Written by `python -m f2f.run` (#13) after the panel is built. The app's freshness dates come from here.
+
+| Key | Type | Notes |
+|---|---|---|
+| `run_id` | str | Folder name, `<YYYYMMDD>-<git sha>` |
+| `config` | str | Config path the run used |
+| `git_sha` | str | Short sha, `nogit` outside a checkout |
+| `created` | str | UTC ISO timestamp |
+| `cases_through` | date | Last city week with case data |
+| `rain_through` | date | Last city day with rain (last complete rain week + 6 days) |
+| `rain_sources` | list[str] | `cchain`, `chirps`: which sources the city's rain weeks came from |
+| `flood_log` | bool | Whether `data/raw/events/flood_log.csv` existed. False means `flood_event` is False everywhere |
+| `sources` | list | Every file under `data/raw/`: `path` (relative), `bytes`, `modified` (UTC date) |
 
 ## C4 plan
 

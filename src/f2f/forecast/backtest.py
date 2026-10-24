@@ -7,8 +7,8 @@ from f2f.forecast.baselines import B0Zero, B1Median, B2SeasonalNB
 
 WEEK = pd.Timedelta(weeks=1)
 HORIZONS = (1, 2, 3)
-DEFAULT_CUTOFF = 0.35
-SPLITS = {"train": (2008, 2018), "tune": (2019, 2020), "test": (2021, 2022)}
+DEFAULT_CUTOFF = 0.35  # interim until #7 freezes alerts.p_cutoff on 2019-20
+SPLITS = {"train": (2008, 2018), "tune": (2019, 2020), "test": (2021, 2022)}  # mirrors base.yaml split; move together
 
 
 def default_models() -> dict:
@@ -22,19 +22,17 @@ def default_models() -> dict:
 def _fit_window(panel: pd.DataFrame, split: str, h: int) -> pd.DataFrame:
     lo, hi = SPLITS[split]
     if split == "train":
+        # No data exists before 2008, so train rows are in-sample by necessity.
         return panel[panel["week_start"].dt.year <= hi]
     start = panel.loc[panel["week_start"].dt.year.between(lo, hi), "week_start"].min()
     return panel[panel["week_start"] <= start - h * WEEK]
 
 
 def _episodes(df: pd.DataFrame) -> list:
-    d = df.sort_values("week_start")
-    elev = d["elevated"].astype(bool).to_numpy()
-    block = (d["week_start"].diff() > WEEK).cumsum()
-    out = []
-    for _, g in d[elev].groupby(block[elev]):
-        out.append((g["week_start"].min(), g["week_start"].max()))
-    return out
+    """Runs of consecutive elevated weeks; a quiet week or a gap in the weeks ends a run."""
+    d = df[df["elevated"].astype(bool)].sort_values("week_start")
+    block = (d["week_start"].diff() != WEEK).cumsum()
+    return [(g["week_start"].min(), g["week_start"].max()) for _, g in d.groupby(block)]
 
 
 def _score(eval_df: pd.DataFrame, h: int, cutoff: float) -> dict:
@@ -76,7 +74,11 @@ def run_backtest(
     cutoff: float = DEFAULT_CUTOFF,
     horizons: tuple = HORIZONS,
 ) -> pd.DataFrame:
-    """Fit each model per (split, h) on the pooled panel, score on city_psgc."""
+    """Fit each model per (split, h) on the pooled panel, score on city_psgc.
+
+    A model is a fit/predict object, or a callable h -> object for models that depend on the
+    horizon. predict() gets the full C1 rows of the weeks it scores, so lagged features are there.
+    """
     models = default_models() if models is None else models
     city = panel[panel["city_psgc"] == city_psgc]
     rows = []
@@ -87,28 +89,13 @@ def run_backtest(
             eval_df = city[in_split & city["cases"].notna()].copy()
             if eval_df.empty:
                 continue
-            
-            train_df = train_df.reset_index(drop=True)
-            eval_df = eval_df.reset_index(drop=True)
-            pred_input = pd.concat([train_df, eval_df], ignore_index=True)
-            
-            for name, model_or_factory in models.items():
-                print(f"DEBUG BACKTEST: Starting {name} for h={h}, split={split}")
-                try:
-                    model = model_or_factory(h) if callable(model_or_factory) else model_or_factory
-                    
-                    full_preds = model.fit(train_df.copy()).predict(pred_input)
-                    preds = full_preds.iloc[-len(eval_df):]
-                    
-                    eval_df["p"] = preds["p_elevated"].to_numpy(dtype=float)
-                    eval_df["q50"] = preds["q50"].to_numpy(dtype=float)
-                    
-                    for metric, value in _score(eval_df, h, cutoff).items():
-                        rows.append(
-                            {"model": name, "h": h, "split": split, "metric": metric, "value": value}
-                        )
-                    print(f"DEBUG BACKTEST: Finished {name} successfully")
-                except Exception as e:
-                    print(f"DEBUG BACKTEST: ERROR in {name}: {type(e).__name__}: {e}")
-                    
+            for name, model in models.items():
+                model = model(h) if callable(model) else model
+                preds = model.fit(train_df.copy()).predict(eval_df.drop(columns=["p", "q50"], errors="ignore"))
+                eval_df["p"] = preds["p_elevated"].to_numpy(dtype=float)
+                eval_df["q50"] = preds["q50"].to_numpy(dtype=float)
+                for metric, value in _score(eval_df, h, cutoff).items():
+                    rows.append(
+                        {"model": name, "h": h, "split": split, "metric": metric, "value": value}
+                    )
     return pd.DataFrame(rows, columns=["model", "h", "split", "metric", "value"])
