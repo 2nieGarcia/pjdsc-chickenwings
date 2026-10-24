@@ -53,7 +53,7 @@ and writes only plans/<plan_id>.json + audit.jsonl (C5) on approve/reject
 ```
 
 - Replay forecasts are pre-computed for every Monday issue date, and use only data up to that date.
-- **Leakage rule:** a feature lagged k weeks behind the target week may feed horizon h only if k ≥ h. Case lags also add the reporting delay.
+- **Leakage rule:** a weekly feature lagged k weeks behind the target week may feed horizon h only if k ≥ h + 1 (lag h is the issue week itself, which starts on the issue Monday). Case lags also add the reporting delay.
 - Entry point: `python -m f2f.run --config configs/carina_2024.yaml`. Fake artifacts for UI work: `python -m f2f.fixtures`.
 
 ## 4. Contracts (`src/f2f/contracts.py` enforces them, `docs/CONTRACTS.md` documents them)

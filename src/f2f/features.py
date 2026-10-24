@@ -1,6 +1,7 @@
 """Builds the city_week panel (contract C1).
 
-Leakage rule: a feature lagged k weeks behind the target week may feed horizon h only if k >= h.
+Leakage rule: a weekly feature lagged k weeks behind the target week may feed horizon h only if k >= h + 1;
+lag h is the week that starts on the issue Monday (target = issue_date + h).
 Case lags also need the reporting delay added to h.
 """
 import pandas as pd

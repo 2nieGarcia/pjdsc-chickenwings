@@ -43,7 +43,7 @@ Out: diagnosis, eligibility, dispatching stock, sending alerts, patient-level da
 
 **Replay is pre-computed.** For Carina 2024 the pipeline issues a forecast every Monday from 1 Jul to 15 Aug as if it were that day: only data up to `issue_date` is visible. The slider just picks rows. `contracts.check` rejects any row whose `rain_through` or `cases_through` is after its `issue_date`.
 
-**One direct model per horizon.** h = 1, 2, 3 each get their own fit. A feature lagged k weeks behind the target may feed horizon h only if k ≥ h. Case lags add the reporting delay on top.
+**One direct model per horizon.** h = 1, 2, 3 each get their own fit. A weekly feature lagged k weeks behind the target may feed horizon h only if k ≥ h + 1: the target is `issue_date + h`, so lag h is the week that starts on the issue Monday and isn't over yet. Case lags add the reporting delay on top.
 
 **Event target, pooled panel.** See [DATASETS.md](DATASETS.md). Short version: Navotas alone has ~40 positive weeks.
 

@@ -43,7 +43,7 @@ One row per issue date per horizon.
 | `rain_through` | date | Last rain day used. ≤ `issue_date` |
 | `cases_through` | date | Last case week used. ≤ `issue_date` |
 
-Alert rule: `watch` if `rain_lag2_mm ≥ 160`; `warning` if `≥ 320` or a flood in lags 1-2 or `p_elevated ≥ alerts.p_cutoff`. The cutoff is tuned on 2019-20 for F2 and frozen in config.
+Alert rule, on what is known at `issue_date`: `watch` if the last complete rain week before the issue date (`rain_lag{h+1}_mm` of the target week; `rain_lag2_mm` at h = 1) is ≥ 160 mm; `warning` if it is ≥ 320 mm, or a flood is logged in either of the two weeks before the issue date, or `p_elevated ≥ alerts.p_cutoff`. The cutoff is tuned on 2019-20 for F2 (`python -m f2f.forecast.event_model`) and frozen in config.
 
 ## C3 `barangay_index_<mode>.parquet`
 

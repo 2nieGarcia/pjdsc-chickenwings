@@ -14,6 +14,8 @@ from f2f import config, contracts, features, index, replay
 from f2f.forecast import event_model, backtest
 from f2f.ingest import cchain, events
 
+WEEK = pd.Timedelta(weeks=1)
+
 
 def run_id() -> str:
     try:
@@ -24,17 +26,39 @@ def run_id() -> str:
 
 
 def write_metrics(panel: pd.DataFrame, out: Path, cfg: dict) -> pd.DataFrame:
-    """Score B0/B1/B2 on the pooled panel and write C7 into the run folder."""
+    """Score B0/B1/B2 and the event model on the pooled panel and write C7 into the run folder."""
     cutoff = cfg["alerts"]["p_cutoff"] or backtest.DEFAULT_CUTOFF
+    models = {**backtest.default_models(), "event_glm": lambda h: event_model.EventGLM(h, cfg)}
     metrics = backtest.run_backtest(
         panel,
         cfg["city"]["psgc10"],
+        models=models,
         horizons=tuple(cfg["horizons"]),
         cutoff=cutoff,
     )
     checked = contracts.check(metrics, "metrics")
     checked.to_parquet(out / "metrics.parquet")
     return checked
+
+
+def forecast(panel: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    """C2 for every replay issue date and horizon. Each fit sees only weeks complete before the issue Monday."""
+    city = cfg["city"]["psgc10"]
+    nav = panel[panel["city_psgc"] == city]
+    rows = []
+    for issue in replay.issue_dates(cfg):
+        past = panel[panel["week_start"] + WEEK <= issue]
+        mine = past[past["city_psgc"] == city]
+        through = {"cases_through": mine.loc[mine["cases"].notna(), "week_start"].max(),
+                   "rain_through": mine.loc[mine["rain_wk_mm"].notna(), "week_start"].max() + pd.Timedelta(days=6)}
+        for h in cfg["horizons"]:
+            target = issue + h * WEEK
+            # pass the weeks before the target too: the flood part of the alert looks back from the issue date
+            upto = nav[nav["week_start"] <= target]
+            pred = event_model.EventGLM(h, cfg).fit(past).predict(upto)
+            rows.append(pred[(upto["week_start"] == target).to_numpy()].assign(issue_date=issue, city_psgc=city, h=h,
+                                                                  target_week=target, **through))
+    return pd.concat(rows, ignore_index=True)
 
 
 def main(argv=None):
@@ -64,9 +88,7 @@ def main(argv=None):
     # C7 before the forecast step: #6 must not wait on the event model (#7)
     write_metrics(panel, out, cfg)
 
-    issues = replay.issue_dates(cfg)
-    fc = [event_model.predict(event_model.fit(panel, h, cfg), panel, issues, h) for h in cfg["horizons"]]
-    contracts.check(pd.concat(fc), "forecast").to_parquet(out / "forecast.parquet")
+    contracts.check(forecast(panel, cfg), "forecast").to_parquet(out / "forecast.parquet")
 
     print(f"artifacts -> {out}")
 
