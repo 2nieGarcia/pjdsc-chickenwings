@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | Training labels | CCHAIN `disease_pidsr_totals`, all 12 cities | City, weekly (Mon) | 2008-01-07 to 2022-12-26 | CC BY 4.0 |
 | Training rain | CCHAIN `climate_atmosphere_downscaled` (reanalysis downscaled to 0.02°) | Barangay, daily; area-weighted to city | 2003-2022 | CC BY 4.0 |
-| Replay rain | CHIRPS v2 daily (IRI Data Library mirror; Earth Engine optional) | 0.05° | 1981 to ~1.5 months ago | Public domain |
+| Replay rain | CHIRPS v2 daily (IRI Data Library mirror; Earth Engine optional), quantile-mapped to the CCHAIN scale on 2015-2022 | 0.05° | 1981 to ~1.5 months ago | Public domain |
 | Static barangay layers | CCHAIN `project_noah_hazards` (2015), `google_open_buildings` (2023), `location` | Barangay (14, pre-2018) | Static | CC BY 4.0 |
 | Access to care | CCHAIN `mapbox_health_facility_brgy_isochrones` (2022), `geoportal_doh_poi_health` (2013) | Barangay (14, pre-2018) | Static | CC BY 4.0 |
 | Population | PSA 2024 POPCEN | Barangay (18) | 1 Jul 2024 | Public |

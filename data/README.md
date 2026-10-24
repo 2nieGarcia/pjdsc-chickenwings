@@ -14,7 +14,7 @@ artifacts/  <run_id>/ folders the app reads; one per pipeline run
 |---|---|---|
 | `raw/cchain/*.csv` | Project CCHAIN on HDX (official, CC BY 4.0): disease, downscaled climate, WorldPop, location, NOAH, Open Buildings, Mapbox isochrones, DOH geoportal | `python -m f2f.ingest.fetch`. Navotas is `adm3_pcode == PH137503000` |
 | `raw/boundaries/navotas_brgy.geojson` | faeldon/philippines-json-maps 2023, 18 barangays | `python -m f2f.ingest.fetch` |
-| `raw/chirps/` | CHIRPS v2 daily via the IRI Data Library mirror (no login) | `python -m f2f.ingest.rain` -> `navotas_daily.csv`, area-weighted over the Navotas polygon, 2015-01-01 to 2024-08-31 |
+| `raw/chirps/` | CHIRPS v2 daily via the IRI Data Library mirror (no login) | `python -m f2f.ingest.rain` -> `navotas_daily.csv`, area-weighted over the Navotas polygon, 2015-01-01 to 2024-08-31. Raw mm; `run.py` quantile-maps it onto the CCHAIN scale (fit on 2015-2022) before it enters the panel. Per-quarter downloads are cached in `chirps/nc/` |
 | `raw/events/flood_log.csv` | DSWD DROMIC PDFs, MMDA posts, news | Built by hand, see below. Columns: `date, barangay, kind, depth_code, affected, source_url`. `kind` is `flood`, `gate_down` or `gate_up`. Every row needs a source URL |
 | `raw/psa/` | Not needed | The 18-barangay codes and populations ship in `src/f2f/ref/navotas_barangays.csv` (see `docs/DATASETS.md`) |
 | `raw/requests/` | Anything from MMCHD, CESU or FOI | Keep the cover letter and date received next to the file |
