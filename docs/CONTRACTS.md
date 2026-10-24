@@ -19,7 +19,7 @@ One row per city per week. Pooled panel, all 12 CCHAIN cities, every Monday from
 | `rain_lag1_mm` … `rain_lag6_mm` | num | `rain_wk_mm` k weeks earlier |
 | `rain_cum6_lag1_mm` | num | Sum of lags 1-6 |
 | `heavy_days` | int | Days ≥ `alerts.heavy_day_mm` that week. Null where `rain_wk_mm` is null |
-| `flood_event` | bool | Any `kind=flood` row in the flood log that week (Navotas only). All False until #4's log exists |
+| `flood_event` | bool | Any `kind=flood` row in the flood log that week (Navotas only). All False when `data/raw/events/flood_log.csv` is missing |
 | `gate_impaired` | bool | Navotas only; any day of the week inside the config's `gate_impaired` window |
 | `source` | str | `cchain` for now; `chirps` rows arrive with #3 |
 
@@ -58,8 +58,8 @@ One file per exposure mode, one row per barangay (18).
 | `exposed_n` | int | People counted as exposed under this mode; feeds the planner |
 | `score` | num | Geometric mean of hazard, exposure (mode), vulnerability, coping_gap |
 | `tier` | str | `act_now` (top 5), `prepare` (next 6), `monitor` |
-| `rank` | int | Under default weights |
-| `rank_p05`, `rank_p95` | int | Monte Carlo band |
+| `rank` | int | Equal weights, 0.25 per dimension |
+| `rank_p05`, `rank_p95` | int | 5th/95th percentile of the rank over `index.mc_draws` draws with weights jittered by ±`index.weight_jitter`, renormalised and seeded. Widened if needed so the band always holds `rank` |
 | `exposure_mode` | str | `resident` or `daytime` |
 
 ## C6 `barangays.geojson`
