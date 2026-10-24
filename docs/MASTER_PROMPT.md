@@ -101,12 +101,12 @@ src/f2f/exposure.py       present_population: resident x 0.93 + fish port inflow
 src/f2f/export.py         artifacts -> web/public/data JSON, plans via f2f.planner [done]
 src/f2f/serve.py          local server: web/dist + POST /api/decision -> audit.jsonl [done]
 src/f2f/geo.py            polygon area/centroid (no geopandas)                   [done]
-src/f2f/ingest/           fetch.py (all raw downloads, CCHAIN from HDX) [done]; cchain.py load_pidsr/load_climate/load_population [done]; rain.py [stub]; events.py load_flood_log [done]
+src/f2f/ingest/           fetch.py (all raw downloads, CCHAIN from HDX) [done]; cchain.py load_pidsr/load_climate/load_population [done]; rain.py chirps_daily/load_chirps, CHIRPS via the IRI mirror [done]; events.py load_flood_log [done]
 src/f2f/features.py       build_city_week                    [done]
-src/f2f/forecast/         baselines.py, event_model.py       [stubs]
+src/f2f/forecast/         baselines.py B0/B1/B2, backtest.py run_backtest, event_model.py EventGLM + tune_cutoff [done]
 src/f2f/index.py          load_layers + build_index on real CCHAIN layers (NOAH, Open Buildings, Mapbox isochrones, DOH geoportal) [done]
 src/f2f/replay.py         issue_dates                        [done]
-src/f2f/run.py            pipeline entry point
+src/f2f/run.py            pipeline entry point: named steps, manifest.json, rolling replay forecast [done]
 tests/                    pytest
 ```
 
@@ -120,17 +120,17 @@ Critical path: **#1 → #5 → #7 → #8 → #18**.
 |---|---|---|---|
 | 1 | Load CCHAIN PIDSR and climate (done) | P0 | none |
 | 2 | Day-1 check: barangay lepto rows, 18 polygons GeoJSON (done: no Navotas barangay rows in CCHAIN) | P0 | none |
-| 3 | CHIRPS daily rain via Earth Engine | P0 | soft #2 (bbox until then) |
+| 3 | CHIRPS daily rain (done: IRI mirror, Earth Engine optional) | P0 | soft #2 (bbox until then) |
 | 4 | Carina 2024 flood and gate log (done) | P0 | none |
 | 5 | Build city_week panel (C1) (done) | P0 | #1; soft #3, #4 |
-| 6 | Baselines B0/B1/B2 + backtest harness, writes `metrics.parquet` (`model, h, split, metric, value`) | P0 | #5 for real numbers |
-| 7 | Pooled event model h=1..3, frozen cutoff | P0 | #5, #6 |
-| 8 | Carina replay forecasts (C2) | P0 | #7, #5 |
+| 6 | Baselines B0/B1/B2 + backtest harness, writes `metrics.parquet` (`model, h, split, metric, value`) (done) | P0 | #5 for real numbers |
+| 7 | Pooled event model h=1..3, frozen cutoff (done: p_cutoff 0.26) | P0 | #5, #6 |
+| 8 | Carina replay forecasts (C2) (done) | P0 | #7, #5 |
 | 9 | PSGC 14→18 crosswalk + POPCEN (done) | P0 | none |
 | 10 | Barangay index and tiers (C3) (done) | P0 | #9; soft #4, #12 |
 | 11 | Monte Carlo rank bands (done) | P1 | #10 |
 | 12 | Daytime exposure scenario (done) | P1 | #9 |
-| 13 | End-to-end run.py + `manifest.json` | P0 | real run needs #1, #3, #4, #5, #7, #8, #10 |
+| 13 | End-to-end run.py + `manifest.json` (done) | P0 | real run needs #1, #3, #4, #5, #7, #8, #10 |
 | 14 | Barangay tier map (offline, colour-blind safe) (done) | P0 | #2, #9 for real data |
 | 15 | Replay timeline + gate banner (done, web/) | P0 | #8, #5 for real data |
 | 16 | Stock panel: stable plan IDs, no double approval (done, f2f.serve) | P1 | soft #10 |

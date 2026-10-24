@@ -16,7 +16,7 @@ from f2f.planner import make_plan
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "web" / "public" / "data"
 
-# shortcut: weekly replay rain is illustrative until CHIRPS lands (#3); flagged synthetic in meta
+# fallback for runs without replay rain in city_week (no CHIRPS file); flagged synthetic in meta
 ILLUSTRATIVE_RAIN_MM = {"2024-07-01": 42, "2024-07-08": 68, "2024-07-15": 121, "2024-07-22": 310,
                         "2024-07-29": 96, "2024-08-05": 54, "2024-08-12": 30}
 
@@ -63,14 +63,22 @@ def main(argv=None):
     (OUT / "plans.json").write_text(json.dumps(plans), encoding="utf-8")
     (OUT / "barangays.geojson").write_text((run / "barangays.geojson").read_text(encoding="utf-8"), encoding="utf-8")
 
+    weeks = pd.date_range(cfg["replay"]["issue_start"], cfg["replay"]["issue_end"], freq="W-MON")
+    rain_mm = {}
+    if (run / "city_week.parquet").exists():
+        cw = pd.read_parquet(run / "city_week.parquet")
+        cw = cw[(cw["city_psgc"] == cfg["city"]["psgc10"]) & cw["week_start"].isin(weeks) & cw["rain_wk_mm"].notna()]
+        rain_mm = {f"{w:%Y-%m-%d}": round(float(v)) for w, v in zip(cw["week_start"], cw["rain_wk_mm"])}
+    rain_synthetic = len(rain_mm) < len(weeks)
+
     # runs from before #13 have no manifest; their case data ended in 2022 too
     mf = json.loads((run / "manifest.json").read_text(encoding="utf-8")) if (run / "manifest.json").exists() else {}
     meta = {
         "run_id": run.name,
         "forecast_synthetic": forecast_synthetic,
         "metrics_synthetic": metrics_synthetic,
-        "rain_synthetic": True,
-        "rain_weekly_mm": ILLUSTRATIVE_RAIN_MM,
+        "rain_synthetic": rain_synthetic,
+        "rain_weekly_mm": ILLUSTRATIVE_RAIN_MM if rain_synthetic else rain_mm,
         "cases_through": mf.get("cases_through", "2022-12-26"),
         "rain_through": mf.get("rain_through"),
         "created": mf.get("created"),

@@ -86,3 +86,14 @@ def test_flood_log_marks_navotas_weeks(cfg):
     df = build_city_week(*inputs(), cfg, flood_log=log)
     hit = df[df["flood_event"]]
     assert set(zip(hit["city_psgc"], hit["week_start"])) == {(NAV, pd.Timestamp("2008-02-04"))}
+
+
+def test_chirps_days_mark_their_weeks(cfg):
+    pidsr, rain, pop = inputs()
+    rain = rain.assign(source="cchain")
+    rain.loc[(rain["city_psgc"] == NAV) & (rain["date"] >= "2008-03-20"), "source"] = "chirps"  # a Thursday
+    df = check(build_city_week(pidsr, rain, pop, cfg), "city_week").set_index(["city_psgc", "week_start"])["source"]
+    assert df[(NAV, pd.Timestamp("2008-03-10"))] == "cchain"
+    assert df[(NAV, pd.Timestamp("2008-03-17"))] == "chirps"  # mixed week counts as chirps
+    assert df[(NAV, pd.Timestamp("2008-03-31"))] == "chirps"
+    assert (df[OTHER] == "cchain").all()

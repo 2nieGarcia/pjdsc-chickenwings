@@ -115,7 +115,7 @@ async function main() {
     $('replay').classList.toggle('standby', !onAlert);
     $('standby-key').hidden = onAlert;
     $('act-src').textContent = onAlert
-      ? 'priority index · rank bands pending (#11)'
+      ? 'priority index · band = rank range under ±20% weight jitter'
       : 'standby · no forecast week on watch or warning';
 
     renderRain(issue);
