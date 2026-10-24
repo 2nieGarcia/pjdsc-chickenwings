@@ -110,10 +110,11 @@ What was actually checked, on Charles's laptop (Windows 11, Python 3.12, pandas 
 | Dashboard, scripted with Playwright (Chrome, 1600×1000) | Every beat's on-screen values match the files. No console errors. No request outside 127.0.0.1 |
 | New label at 1280, 1366 and 1920 px | The key text is always visible; only "f2f.planner" is cut off, and the tooltip has it |
 | Drive upload | Downloaded back; md5 matches |
+| Approve, during the video captures (1920×1080) | Typed "CHO duty officer" and clicked **Approve plan** on 12 Aug: `audit.jsonl` got `created` and `approved` for plan `b94a010d`, and the panel showed the stamp. Both `audit.jsonl` and `plans/` were deleted afterwards, so the run folder is clean |
 
 Not tested in this run:
 
-- **Approve / reject.** Not clicked, so no `audit.jsonl` was written. Dry run 1 checked it on the earlier run.
+- **Reject.** Not clicked. Dry run 1 checked approve and reject on the earlier run.
 - **Dry run 2 with the speaker and a timer.** Still to do.
 - **The actual demo laptop.** This run was built and checked on Charles's laptop only.
 - **The flood trigger against outcomes.** There's no data for it.
@@ -137,10 +138,10 @@ Not tested in this run:
 | Dashboard build with the label fix | Ready (offline-checked) |
 | DEMO.md, video checklist, deck outline | Ready for review (this PR) |
 | Dry run 2 (speaker, timer) | Pending |
-| Backup / demo video | In production. The competition limit is now **3 minutes**, so the 5-minute DEMO.md script will be cut down for the video |
-| Pitch deck | In production. The limit is **20 slides**; the outline in `18-pitch-deck-outline.md` will be reworked to fit and complement the video |
+| Demo video | Draft built outside git, under 3:00: an animated composition over real dashboard screenshots from this run, with burned-in captions, following DEMO.md. It replaces the manual recording planned in `18-demo-video.md`. Waiting on the narration voice |
+| Pitch deck | Draft built outside git: 16 slides (limit 20), editable .pptx with speaker notes, every number from this run. It goes past `18-pitch-deck-outline.md` and complements the video rather than repeating it |
 | #19 request letters | Waiting on the adviser's signature |
-| Narration for the video | Choosing a tool (AI voice); see the PR discussion |
+| Narration for the video | Recommended: Kokoro-82M, a free local voice (Apache-2.0). Waiting on approval to install |
 
 ### For the PM to review
 
