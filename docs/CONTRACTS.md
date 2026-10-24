@@ -21,7 +21,7 @@ One row per city per week. Pooled panel, all 12 CCHAIN cities, every Monday from
 | `heavy_days` | int | Days ≥ `alerts.heavy_day_mm` that week. Null where `rain_wk_mm` is null |
 | `flood_event` | bool | Any `kind=flood` row in the flood log that week (Navotas only). All False when `data/raw/events/flood_log.csv` is missing |
 | `gate_impaired` | bool | Navotas only; any day of the week inside the config's `gate_impaired` window |
-| `source` | str | `cchain` for now; `chirps` rows arrive with #3 |
+| `source` | str | Where the week's rain came from: `cchain`, or `chirps` for the city's weeks after CCHAIN rain stops (end of 2022). A week with any CHIRPS day counts as `chirps` |
 
 Invariants: `week_start` is a Monday; `(city_psgc, week_start)` unique.
 
