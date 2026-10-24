@@ -30,6 +30,11 @@ if not runs:
     st.stop()
 
 run = st.sidebar.selectbox("Run", runs[::-1], format_func=lambda p: p.name)
+if (run / "manifest.json").exists():
+    mf = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
+    st.sidebar.caption(f"Cases through {mf['cases_through']} · rain through {mf['rain_through']} "
+                       f"({', '.join(mf['rain_sources'])}) · built {mf['created'][:10]} from {mf['git_sha']}"
+                       + ("" if mf["flood_log"] else " · no flood log: flood flags off"))
 mode = st.sidebar.radio("Exposure", ["resident", "daytime"])
 idx = pd.read_parquet(run / f"barangay_index_{mode}.parquet")
 if mode == "daytime":
