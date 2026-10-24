@@ -9,7 +9,8 @@ Five minutes, offline, from one frozen artifact run. Every number below comes fr
 3. Frozen run: `python -m f2f.run --config configs/carina_2024.yaml`, then `python -m f2f.export`, then `cd web && npm run build && cd ..`.
 4. `python -m f2f.serve` and open http://127.0.0.1:8600. Check the run id in the header matches the frozen run.
 5. Delete `audit.jsonl` and `plans/` from the run folder so the approval beat starts clean.
-6. Backup: the screen recording in the team Drive. If the browser dies, play it from the same beat.
+6. Backup: the screen recording in the team Drive (`backup_20261024-4b8e6d6.webm`, also in `data/demo/` on the build machine). If the browser dies, play it and narrate from the same beat.
+7. The page opens on 22 Jul: press **Prev week** 3 times before you start talking.
 
 ## Script
 
@@ -52,5 +53,5 @@ Numbers are from run `20261024-4b8e6d6` (real CCHAIN to 2022, CHIRPS 2023-24, no
 
 | Run | Date | Time | Issues found |
 |---|---|---|---|
-| 1 | | | |
-| 2 | | | |
+| 1 (scripted click-through, no speaker) | 24 Oct 2026 | 85 s of clicks; the talk track is about 5 min | No console errors. All 17 requests go to 127.0.0.1 (fonts and data are bundled), so Wi-Fi off is safe. Approve wrote `created` + `approved` to `audit.jsonl`; deleting it and `plans/` resets the beat. Notes: the page opens on 22 Jul, so press **Prev week** 3 times for beat 0; Backtest opens on Week +2, so click **Week +1**; no flood log on the build machine (see above). Recording: `data/demo/backup_20261024-4b8e6d6.webm` (silent; narrate over it). |
+| 2 (with the speaker, timed) | | | |
