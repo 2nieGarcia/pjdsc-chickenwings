@@ -129,6 +129,18 @@ def chirps_daily(start: str, end: str, city_geojson: dict, cache: Path | None = 
     return pd.concat(out, ignore_index=True)
 
 
+def to_reference(x: np.ndarray, src: np.ndarray, ref: np.ndarray) -> np.ndarray:
+    """Empirical quantile mapping: each value of x moves from its quantile in src to the same quantile in ref.
+
+    CHIRPS reads ~20% drier than CCHAIN over Navotas 2015-2022 and rarely reaches the 320 mm weekly
+    line (0 weeks vs 11), while the model and alert thresholds are on the CCHAIN scale. Mapping fit on
+    2015-19 and checked on 2020-22 recovered 10 of 17 CCHAIN weeks >= 160 mm (raw 6, one scale factor 7).
+    Values past src's range clamp to ref's extremes.
+    """
+    q = np.linspace(0, 1, 1001)
+    return np.interp(x, np.quantile(src, q), np.quantile(ref, q))
+
+
 def load_chirps(raw: Path, city_psgc: str = "1380900000") -> pd.DataFrame:
     """Navotas daily CHIRPS rain in the cchain.load_climate shape: city_psgc, date, rain_mm."""
     df = pd.read_csv(Path(raw) / "chirps" / "navotas_daily.csv", parse_dates=["date"])

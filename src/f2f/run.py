@@ -51,7 +51,14 @@ def city_rain(raw: Path, cfg: dict) -> pd.DataFrame:
         return cc
     city = cfg["city"]["psgc10"]
     ch = rain.load_chirps(raw, city).assign(source="chirps")
-    return pd.concat([cc, ch[ch["date"] > cc.loc[cc["city_psgc"] == city, "date"].max()]], ignore_index=True)
+    mine = cc[cc["city_psgc"] == city]
+    # put CHIRPS on the CCHAIN scale the model and thresholds were built on, fit where both exist
+    both = mine.merge(ch, on="date", suffixes=("_cc", "_ch")).dropna(subset=["rain_mm_cc", "rain_mm_ch"])
+    if len(both) < 365 * 3:
+        raise ValueError(f"only {len(both)} days where CHIRPS and CCHAIN overlap; pull CHIRPS from 2015 "
+                         "(python -m f2f.ingest.rain) to scale it")
+    ch["rain_mm"] = rain.to_reference(ch["rain_mm"].to_numpy(), both["rain_mm_ch"].to_numpy(), both["rain_mm_cc"].to_numpy())
+    return pd.concat([cc, ch[ch["date"] > mine["date"].max()]], ignore_index=True)
 
 
 def manifest(out: Path, cfg: dict, config_path: str, raw: Path, panel: pd.DataFrame) -> dict:

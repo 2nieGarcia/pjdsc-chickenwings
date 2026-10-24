@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from f2f.ingest import rain
 from f2f.ingest.rain import area_mean, pixel_weights
 
 # two 0.05 deg pixels side by side, centres at x = 0.025 and 0.075
@@ -38,3 +39,13 @@ def test_masked_pixel_dropped_and_weights_renormalised():
 def test_polygon_outside_pixels_raises():
     with pytest.raises(ValueError):
         pixel_weights(X, Y, square(0.02, 0.2))
+
+
+def test_quantile_mapping_moves_values_onto_the_reference_scale():
+    rng = np.random.default_rng(0)
+    src = rng.gamma(0.5, 8, 5000)          # drier source
+    ref = src * 1.3 + rng.gamma(0.2, 2, 5000)
+    out = rain.to_reference(src, src, ref)
+    assert abs(np.quantile(out, 0.95) - np.quantile(ref, 0.95)) < 0.5
+    assert np.all(np.diff(rain.to_reference(np.sort(src), src, ref)) >= 0)  # order is kept
+    assert np.allclose(rain.to_reference(src, src, src), src)               # same scale -> unchanged
