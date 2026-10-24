@@ -75,11 +75,13 @@ def area_mean(prcp: np.ndarray, weights: np.ndarray) -> np.ndarray:
         return np.where(tot > 0, (np.where(valid, prcp, 0) * w).sum(axis=(1, 2)) / tot, np.nan)
 
 
-def _download(url: str, dest: Path, tries: int = 3, timeout: int = 180) -> None:
+def _download(url: str, dest: Path, tries: int = 5, timeout: int = 300) -> None:
     for i in range(tries):
         try:
             with urllib.request.urlopen(url, timeout=timeout) as r:
-                dest.write_bytes(r.read())
+                tmp = dest.with_suffix(".part")
+                tmp.write_bytes(r.read())
+            tmp.replace(dest)  # only whole files land, so a cached quarter is always complete
             return
         except OSError:
             if i == tries - 1:
@@ -97,23 +99,27 @@ def _read(path: Path):
         return v["X"][:].astype(float), v["Y"][:].astype(float), dates, prcp
 
 
-def chirps_daily(start: str, end: str, city_geojson: dict) -> pd.DataFrame:
+def chirps_daily(start: str, end: str, city_geojson: dict, cache: Path | None = None) -> pd.DataFrame:
     """Area-weighted mean rain in mm per day -> columns date, rain_mm.
 
     The 0.05 deg pixels on the coast cover Manila Bay; weight by area inside the city polygon.
-    Pulled one quarter at a time: IRI answers a quarter in ~10 s but times out on a full year.
+    Pulled one quarter at a time: IRI answers a quarter in ~10 s but times out on a full year, and
+    sometimes on a quarter. With `cache`, each quarter's netCDF is kept there, so a rerun resumes.
     """
     pts = np.concatenate([np.asarray(r, dtype=float)[:, :2] for p in _polygons(city_geojson) for r in p])
     box = dict(x0=pts[:, 0].min(), x1=pts[:, 0].max(), y0=pts[:, 1].min(), y1=pts[:, 1].max())
     start, end = pd.Timestamp(start), pd.Timestamp(end)
     out, weights = [], None
     with tempfile.TemporaryDirectory() as tmp:
+        folder = Path(cache) if cache else Path(tmp)
+        folder.mkdir(parents=True, exist_ok=True)
         for q in pd.period_range(start, end, freq="Q"):
             t0, t1 = max(start, q.start_time.normalize()), min(end, q.end_time.normalize())
             url = IRI.format(**{k: f"{v:.4f}" for k, v in box.items()},
                              t0=urllib.parse.quote(f"{t0:%d %b %Y}"), t1=urllib.parse.quote(f"{t1:%d %b %Y}"))
-            nc = Path(tmp) / f"{q}.nc"
-            _download(url, nc)
+            nc = folder / f"{q}_{t0:%m%d}_{t1:%m%d}.nc"
+            if not nc.exists():
+                _download(url, nc)
             x, y, dates, prcp = _read(nc)
             want = pd.date_range(t0, t1)
             if not dates.equals(want):
@@ -132,7 +138,7 @@ def load_chirps(raw: Path, city_psgc: str = "1380900000") -> pd.DataFrame:
 if __name__ == "__main__":
     raw = Path(config.load()["paths"]["raw"])
     city = json.loads((raw / "boundaries" / "navotas_brgy.geojson").read_text(encoding="utf-8"))
-    df = chirps_daily(*(sys.argv[1:3] or (START, END)), city)
+    df = chirps_daily(*(sys.argv[1:3] or (START, END)), city, cache=raw / "chirps" / "nc")
     dest = raw / "chirps" / "navotas_daily.csv"
     dest.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(dest, index=False, date_format="%Y-%m-%d", float_format="%.3f")
