@@ -76,6 +76,7 @@ def _fake_steps(monkeypatch, tmp_path):
         boundaries=lambda raw: _json.loads((fx / "barangays.geojson").read_text(encoding="utf-8"))))
     monkeypatch.setattr(run, "cchain", SimpleNamespace(load_pidsr=lambda raw: None, load_climate=lambda raw: None,
                                                        load_population=lambda raw: None))
+    monkeypatch.setattr(run, "city_rain", lambda raw, cfg: None)
     monkeypatch.setattr(run.features, "build_city_week", lambda *a, **k: panel)
     monkeypatch.setattr(run, "write_metrics", lambda panel, out, cfg: pd.read_parquet(fx / "metrics.parquet").to_parquet(out / "metrics.parquet"))
     monkeypatch.setattr(run, "forecast", lambda panel, cfg: pd.read_parquet(fx / "forecast.parquet"))

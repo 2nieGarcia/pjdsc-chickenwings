@@ -11,7 +11,8 @@ RAIN_LAGS = range(1, 7)
 
 def build_city_week(pidsr: pd.DataFrame, rain: pd.DataFrame, pop: pd.DataFrame, cfg: dict,
                     flood_log: pd.DataFrame | None = None) -> pd.DataFrame:
-    """pidsr: city_psgc, week_start, cases. rain: city_psgc, date, rain_mm (daily). pop: city_psgc, year, pop.
+    """pidsr: city_psgc, week_start, cases. rain: city_psgc, date, rain_mm (daily), optional source
+    (default cchain; a week with any chirps day is a chirps week). pop: city_psgc, year, pop.
     flood_log: f2f.ingest.events format, Navotas only; None when the log file is missing (flood_event stays False).
 
     Weeks run Monday-Sunday. Every city gets every Monday from the first PIDSR week through the
@@ -26,11 +27,13 @@ def build_city_week(pidsr: pd.DataFrame, rain: pd.DataFrame, pop: pd.DataFrame, 
     df["elevated"] = (df["cases"] >= cfg["target"]["elevated_min_cases"]).astype("boolean")
 
     r = rain.assign(week_start=rain["date"] - pd.to_timedelta(rain["date"].dt.dayofweek, unit="D"),
-                    heavy=rain["rain_mm"] >= cfg["alerts"]["heavy_day_mm"])
+                    heavy=rain["rain_mm"] >= cfg["alerts"]["heavy_day_mm"],
+                    chirps=rain["source"].eq("chirps") if "source" in rain else False)
     wk = r.groupby(["city_psgc", "week_start"]).agg(rain_wk_mm=("rain_mm", "sum"), heavy_days=("heavy", "sum"),
-                                                    n=("rain_mm", "size"))
+                                                    n=("rain_mm", "size"), chirps=("chirps", "any"))
     wk[["rain_wk_mm", "heavy_days"]] = wk[["rain_wk_mm", "heavy_days"]].astype(float).where(wk["n"] == 7)
-    wk = wk.drop(columns="n").reset_index()
+    chirps_weeks = wk.index[wk["chirps"]]
+    wk = wk.drop(columns=["n", "chirps"]).reset_index()
     # lags need weeks before the panel starts and after the rain stops (the weeks a forecast targets),
     # so shift on a gap-free weekly grid that covers both
     rain_grid = pd.MultiIndex.from_product([sorted(wk["city_psgc"].unique()),
@@ -65,6 +68,7 @@ def build_city_week(pidsr: pd.DataFrame, rain: pd.DataFrame, pop: pd.DataFrame, 
                                & (df["week_start"] + pd.Timedelta(days=6) >= pd.Timestamp(gate["start"])))
 
     df["source"] = "cchain"
+    df.loc[pd.MultiIndex.from_frame(df[["city_psgc", "week_start"]]).isin(chirps_weeks), "source"] = "chirps"
     cols = ["city_psgc", "week_start", "cases", "elevated", "pop", "rain_wk_mm",
             *[f"rain_lag{k}_mm" for k in RAIN_LAGS], "rain_cum6_lag1_mm", "heavy_days",
             "flood_event", "gate_impaired", "source"]

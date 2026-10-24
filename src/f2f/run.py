@@ -14,7 +14,7 @@ import pandas as pd
 
 from f2f import config, contracts, features, index, replay
 from f2f.forecast import event_model, backtest
-from f2f.ingest import cchain, events
+from f2f.ingest import cchain, events, rain
 
 WEEK = pd.Timedelta(weeks=1)
 
@@ -41,6 +41,17 @@ def step(name: str):
         raise SystemExit(f"step '{name}': not implemented yet ({e or 'stub'})") from e
     except Exception as e:
         raise RuntimeError(f"step '{name}' failed: {type(e).__name__}: {e}") from e
+
+
+def city_rain(raw: Path, cfg: dict) -> pd.DataFrame:
+    """CCHAIN daily rain for all cities; CHIRPS (#3) continues the city's series after CCHAIN stops in 2022."""
+    cc = cchain.load_climate(raw).assign(source="cchain")
+    if not (raw / "chirps" / "navotas_daily.csv").exists():
+        print("warning: no data/raw/chirps/navotas_daily.csv; run python -m f2f.ingest.rain, or the replay has no rain")
+        return cc
+    city = cfg["city"]["psgc10"]
+    ch = rain.load_chirps(raw, city).assign(source="chirps")
+    return pd.concat([cc, ch[ch["date"] > cc.loc[cc["city_psgc"] == city, "date"].max()]], ignore_index=True)
 
 
 def manifest(out: Path, cfg: dict, config_path: str, raw: Path, panel: pd.DataFrame) -> dict:
@@ -119,9 +130,8 @@ def main(argv=None):
         (out / "barangays.geojson").write_text(json.dumps(fc), encoding="utf-8")
 
     with step("city_week"):
-        # CCHAIN rain stops at 2022; CHIRPS (#3) fills 2023-24 for the replay once ingest.rain is done
         flood_log = events.load_flood_log(raw) if (raw / "events" / "flood_log.csv").exists() else None
-        panel = features.build_city_week(cchain.load_pidsr(raw), cchain.load_climate(raw), cchain.load_population(raw),
+        panel = features.build_city_week(cchain.load_pidsr(raw), city_rain(raw, cfg), cchain.load_population(raw),
                                          cfg, flood_log)
         contracts.check(panel, "city_week").to_parquet(out / "city_week.parquet")
     with step("manifest"):
