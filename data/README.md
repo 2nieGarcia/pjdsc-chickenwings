@@ -29,7 +29,7 @@ One row per barangay per source report. The Carina 2024 log (#4) covers 1 Jun to
 - `depth_code`: MMDA's depth terms: `below_gutter` (under 8 in), `gutter` (8), `half_knee` (9-10), `half_tire` (13), `knee` (19), `tire` (26), `waist` (37), `chest` (45). Blank if the source gives none.
 - `affected`: persons. Blank when the source only gives families.
 
-Known gaps: the DROMIC Carina reports never name Navotas barangays, only city totals. No 2024 source names San Jose (Pob.), though it is on the config's gate list.
+Known gaps: the DROMIC Carina reports never name Navotas barangays, only city totals. No 2024 source names San Jose (Pob.), so it is off the config gate list (#39); the only 2024 mention found is its barangay hall used as an evacuation centre (Manila Bulletin, 24 Jul 2024). Sources say "Tangos", never North or South, so both stay on the list.
 
 ## Artifacts
 
