@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from f2f import config, contracts, features, index, replay
-from f2f.forecast import event_model
+from f2f.forecast import event_model, backtest
 from f2f.ingest import cchain, events
 
 
@@ -21,6 +21,20 @@ def run_id() -> str:
     except (OSError, subprocess.CalledProcessError):
         sha = "nogit"
     return f"{date.today():%Y%m%d}-{sha}"
+
+
+def write_metrics(panel: pd.DataFrame, out: Path, cfg: dict) -> pd.DataFrame:
+    """Score B0/B1/B2 on the pooled panel and write C7 into the run folder."""
+    cutoff = cfg["alerts"]["p_cutoff"] or backtest.DEFAULT_CUTOFF
+    metrics = backtest.run_backtest(
+        panel,
+        cfg["city"]["psgc10"],
+        horizons=tuple(cfg["horizons"]),
+        cutoff=cutoff,
+    )
+    checked = contracts.check(metrics, "metrics")
+    checked.to_parquet(out / "metrics.parquet")
+    return checked
 
 
 def main(argv=None):
@@ -46,6 +60,9 @@ def main(argv=None):
     panel = features.build_city_week(cchain.load_pidsr(raw), cchain.load_climate(raw), cchain.load_population(raw),
                                      cfg, flood_log)
     contracts.check(panel, "city_week").to_parquet(out / "city_week.parquet")
+
+    # C7 before the forecast step: #6 must not wait on the event model (#7)
+    write_metrics(panel, out, cfg)
 
     issues = replay.issue_dates(cfg)
     fc = [event_model.predict(event_model.fit(panel, h, cfg), panel, issues, h) for h in cfg["horizons"]]
