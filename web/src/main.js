@@ -149,7 +149,8 @@ async function main() {
     const ratio = unmet / plan.stock_on_hand;
     $('spill').style.width = `${Math.min(64, 34 * ratio)}%`;
     $('spill').classList.toggle('cut', 34 * ratio > 64); // drawn truncated, so it carries a break mark
-    $('stock-src').textContent = `${dmy(plan.issue_date)} plan · ${state.mode === 'daytime' ? 'daytime scenario' : 'residents'} · f2f.planner`;
+    // one plan per run (the index doesn't change by week), so say so instead of tying it to the slider
+    $('stock-src').textContent = $('stock-src').title = `Plan issued ${dmy(plan.issue_date)} · same for every replay week · ${state.mode === 'daytime' ? 'daytime scenario' : 'residents'} · f2f.planner`;
     $('unmet-x').textContent = ratio > 1.9 ? `unmet · ${ratio.toFixed(1)}× on hand` : 'unmet';
     $('scen').innerHTML = Object.entries(data.plans[state.mode]).map(([u, p]) =>
       `<button type="button" role="radio" aria-checked="${u === state.uptake}" data-u="${u}"><b>${Math.round(u * 100)}% uptake</b><span>unmet ${num.format(p.total_need - p.total_alloc)}</span></button>`).join('');
