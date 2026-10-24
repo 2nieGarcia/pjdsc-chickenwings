@@ -87,6 +87,22 @@ Backtest scores, written by the baseline harness (#6). The dashboard's Backtest 
 
 Invariants: `(model, h, split, metric)` unique; `brier`, `auc` and `episode_recall` in [0, 1] (write 0.64, not 64). Until #6 writes it, `python -m f2f.export` falls back to the fixture scores and flags them `metrics_synthetic`.
 
+## C8 `manifest.json`
+
+Written by `python -m f2f.run` (#13) after the panel is built. The app's freshness dates come from here.
+
+| Key | Type | Notes |
+|---|---|---|
+| `run_id` | str | Folder name, `<YYYYMMDD>-<git sha>` |
+| `config` | str | Config path the run used |
+| `git_sha` | str | Short sha, `nogit` outside a checkout |
+| `created` | str | UTC ISO timestamp |
+| `cases_through` | date | Last city week with case data |
+| `rain_through` | date | Last city day with rain (last complete rain week + 6 days) |
+| `rain_sources` | list[str] | `cchain`, `chirps`: which sources the city's rain weeks came from |
+| `flood_log` | bool | Whether `data/raw/events/flood_log.csv` existed. False means `flood_event` is False everywhere |
+| `sources` | list | Every file under `data/raw/`: `path` (relative), `bytes`, `modified` (UTC date) |
+
 ## C4 plan
 
 Request (built by the app):

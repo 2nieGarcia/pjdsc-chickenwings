@@ -42,6 +42,7 @@ barangay_index_resident.parquet
 barangay_index_daytime.parquet
 barangays.geojson         18 polygons for the map
 metrics.parquet           backtest scores (#6)
+manifest.json             inputs, git sha and freshness dates (#13)
 plans/<plan_id>.json      written by the app on approve/reject
 audit.jsonl               written by the app
 ```

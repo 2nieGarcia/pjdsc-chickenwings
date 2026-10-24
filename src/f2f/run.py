@@ -1,11 +1,13 @@
 """python -m f2f.run --config configs/carina_2024.yaml
 
-Raw data in, one artifact folder out. The app only ever reads that folder.
+Raw data in, one artifact folder out. The app only ever reads that folder. manifest.json (C8) says
+what went in and how fresh it is; a step that can't run stops the run with its name and the file it wanted.
 """
 import argparse
 import json
 import subprocess
-from datetime import date
+from contextlib import contextmanager
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -17,12 +19,47 @@ from f2f.ingest import cchain, events
 WEEK = pd.Timedelta(weeks=1)
 
 
-def run_id() -> str:
+def git_sha() -> str:
     try:
-        sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        return subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
-        sha = "nogit"
-    return f"{date.today():%Y%m%d}-{sha}"
+        return "nogit"
+
+
+def run_id() -> str:
+    return f"{date.today():%Y%m%d}-{git_sha()}"
+
+
+@contextmanager
+def step(name: str):
+    """Name the step in the error, so a missing input or stub reads as what to do next."""
+    try:
+        yield
+    except FileNotFoundError as e:
+        raise SystemExit(f"step '{name}': missing {e.filename}. See data/README.md for where it comes from.") from e
+    except NotImplementedError as e:
+        raise SystemExit(f"step '{name}': not implemented yet ({e or 'stub'})") from e
+    except Exception as e:
+        raise RuntimeError(f"step '{name}' failed: {type(e).__name__}: {e}") from e
+
+
+def manifest(out: Path, cfg: dict, config_path: str, raw: Path, panel: pd.DataFrame) -> dict:
+    """C8: what this run read and how far its data goes."""
+    mine = panel[panel["city_psgc"] == cfg["city"]["psgc10"]]
+    rain = mine.loc[mine["rain_wk_mm"].notna(), ["week_start", "source"]]
+    files = sorted(f for f in raw.rglob("*") if f.is_file())
+    return {
+        "run_id": out.name,
+        "config": str(config_path),
+        "git_sha": git_sha(),
+        "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "cases_through": f"{mine.loc[mine['cases'].notna(), 'week_start'].max():%Y-%m-%d}",
+        "rain_through": f"{rain['week_start'].max() + pd.Timedelta(days=6):%Y-%m-%d}",
+        "rain_sources": sorted(rain["source"].unique()),
+        "flood_log": (raw / "events" / "flood_log.csv").exists(),
+        "sources": [{"path": f.relative_to(raw).as_posix(), "bytes": f.stat().st_size,
+                     "modified": f"{datetime.fromtimestamp(f.stat().st_mtime, timezone.utc):%Y-%m-%d}"} for f in files],
+    }
 
 
 def write_metrics(panel: pd.DataFrame, out: Path, cfg: dict) -> pd.DataFrame:
@@ -72,23 +109,32 @@ def main(argv=None):
     out.mkdir(parents=True, exist_ok=True)
 
     # static layers first: the index doesn't wait on case data or the forecast
-    layers = index.load_layers(raw, cfg)
-    for mode in ("resident", "daytime"):
-        idx = contracts.check(index.build_index(layers, cfg, mode), "barangay_index")
-        idx.to_parquet(out / f"barangay_index_{mode}.parquet")
-    fc = contracts.check_boundaries(index.boundaries(raw))
-    (out / "barangays.geojson").write_text(json.dumps(fc), encoding="utf-8")
+    with step("index"):
+        layers = index.load_layers(raw, cfg)
+        for mode in ("resident", "daytime"):
+            idx = contracts.check(index.build_index(layers, cfg, mode), "barangay_index")
+            idx.to_parquet(out / f"barangay_index_{mode}.parquet")
+    with step("boundaries"):
+        fc = contracts.check_boundaries(index.boundaries(raw))
+        (out / "barangays.geojson").write_text(json.dumps(fc), encoding="utf-8")
 
-    # CCHAIN rain stops at 2022; CHIRPS (#3) fills 2023-24 for the replay once ingest.rain is done
-    flood_log = events.load_flood_log(raw) if (raw / "events" / "flood_log.csv").exists() else None
-    panel = features.build_city_week(cchain.load_pidsr(raw), cchain.load_climate(raw), cchain.load_population(raw),
-                                     cfg, flood_log)
-    contracts.check(panel, "city_week").to_parquet(out / "city_week.parquet")
+    with step("city_week"):
+        # CCHAIN rain stops at 2022; CHIRPS (#3) fills 2023-24 for the replay once ingest.rain is done
+        flood_log = events.load_flood_log(raw) if (raw / "events" / "flood_log.csv").exists() else None
+        panel = features.build_city_week(cchain.load_pidsr(raw), cchain.load_climate(raw), cchain.load_population(raw),
+                                         cfg, flood_log)
+        contracts.check(panel, "city_week").to_parquet(out / "city_week.parquet")
+    with step("manifest"):
+        m = manifest(out, cfg, args.config, raw, panel)
+        (out / "manifest.json").write_text(json.dumps(m, indent=2), encoding="utf-8")
+        if not m["flood_log"]:
+            print("warning: no data/raw/events/flood_log.csv, so flood_event is False everywhere (see data/README.md)")
 
     # C7 before the forecast step: #6 must not wait on the event model (#7)
-    write_metrics(panel, out, cfg)
-
-    contracts.check(forecast(panel, cfg), "forecast").to_parquet(out / "forecast.parquet")
+    with step("metrics"):
+        write_metrics(panel, out, cfg)
+    with step("forecast"):
+        contracts.check(forecast(panel, cfg), "forecast").to_parquet(out / "forecast.parquet")
 
     print(f"artifacts -> {out}")
 

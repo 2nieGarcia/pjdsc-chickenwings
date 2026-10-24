@@ -63,13 +63,17 @@ def main(argv=None):
     (OUT / "plans.json").write_text(json.dumps(plans), encoding="utf-8")
     (OUT / "barangays.geojson").write_text((run / "barangays.geojson").read_text(encoding="utf-8"), encoding="utf-8")
 
+    # runs from before #13 have no manifest; their case data ended in 2022 too
+    mf = json.loads((run / "manifest.json").read_text(encoding="utf-8")) if (run / "manifest.json").exists() else {}
     meta = {
         "run_id": run.name,
         "forecast_synthetic": forecast_synthetic,
         "metrics_synthetic": metrics_synthetic,
         "rain_synthetic": True,
         "rain_weekly_mm": ILLUSTRATIVE_RAIN_MM,
-        "cases_through": "2022-12-26",
+        "cases_through": mf.get("cases_through", "2022-12-26"),
+        "rain_through": mf.get("rain_through"),
+        "created": mf.get("created"),
         "gate": {k: str(v) if not isinstance(v, list) else v for k, v in cfg["gate_impaired"].items()},
         "alerts": {k: cfg["alerts"][k] for k in ("watch_rain_lag2_mm", "warning_rain_lag2_mm")},
         "daytime": {"factor": cfg["exposure"]["daytime_factor"], "inflow": cfg["exposure"]["nfpc_scenario"]},
